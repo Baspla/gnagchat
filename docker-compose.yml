@@ -1,0 +1,31 @@
+services:
+  frontend:
+    image: gnagchat-frontend
+    container_name: gnagchat_frontend
+    env_file:
+      - .env
+    environment:
+      - PORT=8080
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+  backend:
+    image: gnagchat-backend
+    container_name: gnagchat_backend
+    env_file:
+      - .env
+    networks:
+      - omni
+    ports:
+      - "8081:3000"
+    volumes:
+      - omni_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  omni_data:
+    driver: local
+
+networks:
+  omni:
+    driver: bridge
