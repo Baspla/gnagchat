@@ -30,10 +30,10 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
     }, {
         auth: true
     })
-    .post('/rooms/:roomId/messages', async ({ user, params, body, server, status, chatService }) => {
+    .post('/rooms/:roomId/messages', async ({ user, params, body, status, chatService }) => {
         try {
             console.log(`User ${user.id} is sending a message to room ${params.roomId}: ${body.content}`);
-            const savedMessage = await chatService.saveMessageAsUser(user.id, params.roomId, body.content, server!);
+            const savedMessage = await chatService.saveMessageAsUser(user.id, params.roomId, body.content);
             return savedMessage;
         } catch (e: any) {
             return status('Forbidden', e.message || 'Access denied or room not found');
@@ -45,8 +45,7 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
         body: t.Object({
             content: t.String()
         }),
-        auth: true,
-        assertWSServerExists: true
+        auth: true
     })
     .get('/rooms/:roomId/history', async ({ user, params, query, status, chatService }) => {
         try {

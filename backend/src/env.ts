@@ -29,4 +29,6 @@ export const env = {
     OAUTH_CLIENT_ID: oauthClientId,
     OAUTH_CLIENT_SECRET: oauthClientSecret,
     API_URL_INTERNAL: readEnv('VITE_API_URL_INTERNAL') ?? 'http://localhost:3000/api',
+    CENTRIFUGO_API_KEY: readEnv('CENTRIFUGO_API_KEY') ?? '',
+    CENTRIFUGO_URL: readEnv('CENTRIFUGO_URL') ?? 'http://centrifugo:8000',
 };

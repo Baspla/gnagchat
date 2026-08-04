@@ -21,6 +21,21 @@ services:
     volumes:
       - gnagchat_data:/app/backend/data
     restart: unless-stopped
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    container_name: gnagchat_centrifugo
+    env_file:
+      - .env
+    environment:
+      - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
+    networks:
+      - gnagchat
+    ports:
+      - "8082:8000"
+    volumes:
+      - ./centrifugo/config.json:/centrifugo/config.json
+    command: centrifugo -c /centrifugo/config.json
+    restart: unless-stopped
 
 volumes:
   gnagchat_data:

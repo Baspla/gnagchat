@@ -1,12 +1,11 @@
 import { eq, and, gt, desc, or } from 'drizzle-orm';
-import type { ServerWebSocket } from 'bun';
 import { db } from '../../db';
 import { message, roomReadState, room, channel, directMessage, Room } from './schema';
 import { PermissionService } from '../permission/service';
 import { userRole } from '../permission/schema';
 import { user } from '../user/schema';
-import { publish } from '../../util/websocket/websocket';
 import { validateChannelName } from '../../util/validation';
+import { CentrifugoService } from '../centrifugo/service';
 
 export class ChatService {
 
@@ -62,7 +61,7 @@ export class ChatService {
      * Saves a message after validating room access and send permissions.
      * Scoped as: ...AsUser
      */
-    static async saveMessageAsUser(userId: string, roomId: string, content: string, server: Bun.Server<unknown>) {
+    static async saveMessageAsUser(userId: string, roomId: string, content: string) {
         const canView = await this.canViewRoomAsUser(userId, roomId);
         if (!canView) {
             throw new Error('Forbidden: Insufficient permissions to view this room');
@@ -89,23 +88,20 @@ export class ChatService {
             content,
         }).returning();
 
-        publish(server, `room:${roomId}`, {
-            type: 'chat_message',
-            data: savedMessage
-        });
+        // 4. Publish message to room channel via Centrifugo
+        await CentrifugoService.publishToCentrifugo(`room:${roomId}`, 'chat_message', savedMessage);
 
         console.log(`Message saved and published to room ${roomId}:`, savedMessage);
 
-        // 2. Fetch all users who have access to this room (excluding the sender)
+        // 5. Fetch all users who have access to this room (excluding the sender)
         const roomMembers = await this.getRoomMemberIdsAsSystem(roomId);
 
-        // 3. Push an unread/sidebar ping to everyone else's personal user channel!
+        // 6. Push an unread/sidebar ping to everyone else's personal user channel via Centrifugo
         for (const memberId of roomMembers) {
             if (memberId !== userId) {
-                publish(server, `user:${memberId}`, {
-                    type: 'room_activity',
+                await CentrifugoService.publishToCentrifugo(`user:${memberId}`, 'room_activity', {
                     roomId: roomId,
-                    message: savedMessage
+                    message: savedMessage,
                 });
             }
         }
