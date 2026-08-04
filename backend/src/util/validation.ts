@@ -1,6 +1,6 @@
 /**
  * Validates a channel name.
- * Rules: 1-100 chars, lowercase alphanumeric + hyphens + underscores, no leading/trailing spaces.
+ * Rules: 1-100 chars, alphanumeric + hyphens + underscores, no leading/trailing spaces.
  */
 export function validateChannelName(name: string): { valid: boolean; error?: string } {
     if (!name || typeof name !== 'string') {
@@ -17,8 +17,8 @@ export function validateChannelName(name: string): { valid: boolean; error?: str
         return { valid: false, error: 'Channel name must be at most 100 characters' };
     }
 
-    if (!/^[a-z0-9_-]+$/.test(trimmed)) {
-        return { valid: false, error: 'Channel name can only contain lowercase letters, numbers, hyphens, and underscores' };
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+        return { valid: false, error: 'Channel name can only contain letters, numbers, hyphens, and underscores' };
     }
 
     return { valid: true };
