@@ -38,7 +38,7 @@ COPY --from=builder /app/frontend/build ./frontend/build
 COPY --from=builder /app/shared/ ./shared/
 
 # 3. Install only production dependencies for the frontend workspace
-RUN bun install --production --frozen-lockfile --ignore-scripts --filter omni-frontend
+RUN bun install --production --frozen-lockfile --ignore-scripts --filter @gnagchat/frontend
 
 # 4. Set the execution directory directly to the frontend workspace
 WORKDIR /app/frontend
