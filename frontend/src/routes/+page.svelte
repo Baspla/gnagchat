@@ -4,6 +4,7 @@
   import type { PageData } from "./$types";
   import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
+    import ChatTest from "$lib/components/ChatTest.svelte";
 
   let { data }: { data: PageData } = $props();
 
@@ -28,6 +29,7 @@
     Logout
   </button>
   <p>Angemeldet als {user.name}</p>
+  <ChatTest roomId="default-room" />
 {:else}
   <div class="h-screen w-screen flex items-center justify-center">
     <div class="rounded-lg p-8 w-full max-w-md mx-4 shadow-2xl">
