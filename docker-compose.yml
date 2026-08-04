@@ -15,17 +15,17 @@ services:
     env_file:
       - .env
     networks:
-      - omni
+      - gnagchat
     ports:
       - "8081:3000"
     volumes:
-      - omni_data:/app/data
+      - gnagchat_data:/app/backend/data
     restart: unless-stopped
 
 volumes:
-  omni_data:
+  gnagchat_data:
     driver: local
 
 networks:
-  omni:
+  gnagchat:
     driver: bridge

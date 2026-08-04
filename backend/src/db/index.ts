@@ -3,7 +3,7 @@ import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import * as schema from './schema';
 import { Database } from 'bun:sqlite';
 
-const client = new Database('sqlite.db');
+const client = new Database('data/sqlite.db');
 client.run('PRAGMA journal_mode = WAL;');
 export const db = drizzle(client, { schema });
 

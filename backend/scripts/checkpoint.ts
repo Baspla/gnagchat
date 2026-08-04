@@ -1,7 +1,7 @@
 // scripts/checkpoint.ts
 import { Database, constants } from "bun:sqlite";
 
-const db = new Database("sqlite.db");
+const db = new Database("data/sqlite.db");
 
 try {
     
