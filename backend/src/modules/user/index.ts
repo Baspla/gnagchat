@@ -1,7 +1,7 @@
 // modules/user/index.ts
 import { Elysia, t } from 'elysia'
 import { UserService } from './service'
-import { Modules } from '../../../../shared/constants'
+import { Modules } from '@gnagchat/shared/constants'
 import { authMiddleware } from '../auth'
 
 export const userModule = new Elysia({ prefix: '/users', name: Modules.USER })

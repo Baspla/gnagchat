@@ -1,27 +1,11 @@
-import { env } from '$env/dynamic/public';
-export type ChatMessage = {
-    id: string;
-    roomId: string;
-    userId: string;
-    content: string;
-    createdAt: Date;
-};
-
-export type WSIncomingMessage =
-    | { type: 'chat_message'; data: ChatMessage }
-    | { type: 'typing_indicator'; userId: string; isTyping: boolean }
-    | { type: 'system'; message: string }
-    | { type: 'pong' }
-    | { type: 'error'; message: string }
-    | { type: 'room_activity'; roomId: string; message: ChatMessage };
+import { api } from '$lib/api';
+import type { ChatMessage, WSIncomingMessage } from '@gnagchat/shared/dto';
 
 export type WSConnectionState = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 
 class AppWebSocketManager {
     private ws: WebSocket | null = $state(null);
-    private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    private pingInterval: ReturnType<typeof setInterval> | null = null;
     private listeners = new Map<string, Set<(msg: WSIncomingMessage) => void>>();
     private subscribedRooms = new Set<string>();
 
@@ -36,13 +20,14 @@ class AppWebSocketManager {
         this.connectionState = 'connecting';
         this.lastError = null;
 
-        const wsUrl = (env.PUBLIC_VITE_API_URL || 'http://localhost:3000')
-            .replace(/^http/, 'ws') + '/api/v1/ws';
-
         try {
-            this.ws = new WebSocket(wsUrl);
+            // Use Eden Treaty's subscribe method which returns an EdenWS (extends WebSocket)
+            const edenWs = api.ws.subscribe();
 
-            this.ws.onopen = () => {
+            // Access the raw native WebSocket for full control
+            this.ws = 'raw' in edenWs ? (edenWs as any).raw : (edenWs as unknown as WebSocket);
+
+            edenWs.addEventListener('open', () => {
                 this.connectionState = 'connected';
                 this.lastError = null;
 
@@ -50,41 +35,33 @@ class AppWebSocketManager {
                 for (const roomId of this.subscribedRooms) {
                     this.send({ type: 'subscribe', topic: `room:${roomId}` });
                 }
+            });
 
-                // Start ping interval
-                this.pingInterval = setInterval(() => {
-                    this.send({ type: 'ping' });
-                }, 30_000);
-            };
-
-            this.ws.onmessage = (event: MessageEvent) => {
+            edenWs.addEventListener('message', (event: MessageEvent) => {
                 try {
                     const data = JSON.parse(event.data) as WSIncomingMessage;
                     this.routeMessage(data);
                 } catch (e) {
                     console.error('[AppWS] Failed to parse message:', e);
                 }
-            };
+            });
 
-            this.ws.onclose = () => {
+            edenWs.addEventListener('close', () => {
                 this.connectionState = 'disconnected';
-                this.cleanup();
-                this.scheduleReconnect();
-            };
+                this.ws = null;
+            });
 
-            this.ws.onerror = () => {
+            edenWs.addEventListener('error', () => {
                 this.lastError = 'WebSocket connection error';
                 this.connectionState = 'error';
-            };
+            });
         } catch (e) {
             this.lastError = 'Failed to create WebSocket connection';
             this.connectionState = 'error';
-            this.scheduleReconnect();
         }
     }
 
     disconnect() {
-        this.cleanup();
         this.ws?.close();
         this.ws = null;
         this.connectionState = 'disconnected';
@@ -148,25 +125,6 @@ class AppWebSocketManager {
                 cb(msg);
             }
         }
-    }
-
-    private cleanup() {
-        if (this.pingInterval) {
-            clearInterval(this.pingInterval);
-            this.pingInterval = null;
-        }
-        if (this.reconnectTimer) {
-            clearTimeout(this.reconnectTimer);
-            this.reconnectTimer = null;
-        }
-    }
-
-    private scheduleReconnect() {
-        if (this.reconnectTimer) return;
-        this.reconnectTimer = setTimeout(() => {
-            this.reconnectTimer = null;
-            this.connect();
-        }, 3000);
     }
 }
 

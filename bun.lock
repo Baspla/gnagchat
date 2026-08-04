@@ -60,6 +60,9 @@
     "shared": {
       "name": "@gnagchat/shared",
       "version": "1.0.0",
+      "dependencies": {
+        "elysia": "^1.4.29",
+      },
     },
   },
   "packages": {

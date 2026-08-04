@@ -1,6 +1,6 @@
 import { api } from '$lib/api';
 import { appWebSocket } from './appWebsocket.svelte';
-import type { ChatMessage, WSIncomingMessage } from './appWebsocket.svelte';
+import type { ChatMessage, WSIncomingMessage } from '@gnagchat/shared/dto';
 
 export class ChatMessages {
     roomId: string;

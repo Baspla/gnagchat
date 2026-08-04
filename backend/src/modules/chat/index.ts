@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { ChatService } from './service'
-import { Modules } from '../../../../shared/constants'
+import { Modules } from '@gnagchat/shared/constants'
 import { authMiddleware } from '../auth'
 
 export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
