@@ -1,5 +1,6 @@
 import { db } from '../../db'
-import { RedactedUser, User, user } from '../../db/schema'
+import type { RedactedUser, User } from '../../db/schema'
+import { user } from '../../db/schema'
 import { eq } from 'drizzle-orm'
 
 export abstract class UserService {

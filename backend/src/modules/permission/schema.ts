@@ -2,7 +2,7 @@
 import { sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core';
 import { user } from '../user/schema';
 import { channel } from '../chat/schema';
-import { Permission } from '$shared/permissions';
+import type { Permission } from '$shared/permissions';
 
 export const role = sqliteTable('role', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

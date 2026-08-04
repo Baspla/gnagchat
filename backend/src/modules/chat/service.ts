@@ -1,6 +1,7 @@
 import { eq, and, gt, desc, or } from 'drizzle-orm';
 import { db } from '../../db';
-import { message, roomReadState, room, channel, directMessage, Room } from './schema';
+import { message, roomReadState, room, channel, directMessage } from './schema';
+import type {Room} from './schema';
 import { PermissionService } from '../permission/service';
 import { userRole } from '../permission/schema';
 import { user } from '../user/schema';

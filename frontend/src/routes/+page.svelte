@@ -29,7 +29,7 @@
     Logout
   </button>
   <p>Angemeldet als {user.name}</p>
-  <ChatTest roomId="default-room" />
+  <ChatTest />
 {:else}
   <div class="h-screen w-screen flex items-center justify-center">
     <div class="rounded-lg p-8 w-full max-w-md mx-4 shadow-2xl">
