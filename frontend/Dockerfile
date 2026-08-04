@@ -3,8 +3,8 @@ FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
-# 1. Copy root and ALL workspace configurations
-COPY package.json ./
+# 1. Copy root, lockfile and ALL workspace configurations
+COPY package.json bun.lock ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json frontend/svelte.config.js frontend/vite.config.ts ./frontend/
@@ -27,8 +27,8 @@ FROM oven/bun:1-slim AS runner
 
 WORKDIR /app
 
-# 1. Copy ALL workspace configurations so Bun knows the monorepo map
-COPY package.json ./
+# 1. Copy ALL workspace configurations and lockfile so Bun knows the monorepo map
+COPY package.json bun.lock ./
 COPY shared/package.json ./shared/
 COPY backend/package.json ./backend/
 COPY frontend/package.json ./frontend/
