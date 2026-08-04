@@ -1,3 +1,59 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+/* Discord-inspired dark theme — Tailwind v4 @theme directive */
+@theme {
+  --color-discord-darkest: #1e1f22;
+  --color-discord-dark: #2b2d31;
+  --color-discord-medium: #313338;
+  --color-discord-light: #3f4147;
+  --color-discord-hover: #35373c;
+  --color-discord-active: #404249;
+  --color-discord-text: #dbdee1;
+  --color-discord-text-muted: #949ba4;
+  --color-discord-text-dim: #5c5e66;
+  --color-discord-blurple: #5865f2;
+  --color-discord-blurple-hover: #4752c4;
+  --color-discord-green: #23a55a;
+  --color-discord-red: #da373c;
+  --color-discord-border: #1e1f22;
+  --color-discord-input-bg: #383a40;
+  --color-discord-mention-bg: #404249;
+  --color-discord-divider: #3f4147;
+  --spacing-server-bar: 72px;
+  --spacing-sidebar: 240px;
+  --spacing-header: 48px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #1e1f22 transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-discord-medium);
+  color: var(--color-discord-text);
+  font-family: 'gg sans', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+  overflow: hidden;
+}
+
+/* Custom scrollbar for webkit */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e1f22;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2b2d31;
+}

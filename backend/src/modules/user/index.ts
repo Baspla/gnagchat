@@ -4,21 +4,21 @@ import { UserService } from './service'
 import { Modules } from '../../../../shared/constants'
 import { authMiddleware } from '../auth'
 
-export const userModule = new Elysia({ prefix: '/users', name: Modules.USERS })
+export const userModule = new Elysia({ prefix: '/users', name: Modules.USER })
     .use(authMiddleware)
     .derive({ as: 'scoped' }, () => ({
-        userService: new UserService()
+        userService: UserService
     }))
     .get('/me', async ({ user, status, userService }) => {
         try {
-            return await userService.getUserForUser(user.id, user.id)
+            return await userService.getUserAsUser(user.id, user.id)
         } catch (e) {
             return status('Not Found', "User profile not found")
         }
     }, { auth: true })
     .get('/:id', async ({ user,params, status, userService }) => {
         try {
-            return await userService.getUserForUser(user.id, params.id)
+            return await userService.getUserAsUser(user.id, params.id)
         } catch (e) {
             return status('Not Found', "User profile not found")
         }

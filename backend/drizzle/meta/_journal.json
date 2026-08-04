@@ -8,6 +8,13 @@
       "when": 1785768303411,
       "tag": "0000_dusty_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1785804752248,
+      "tag": "0001_hot_giant_girl",
+      "breakpoints": true
     }
   ]
 }

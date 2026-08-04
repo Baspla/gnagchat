@@ -3,10 +3,9 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../../db";
 import { genericOAuth } from "better-auth/plugins/generic-oauth";
 import { env } from "../../env";
-import { Modules } from "$shared/constants";
 import { UserService } from "../user/service";
 
-const userService = new UserService();
+const userService = UserService;
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {

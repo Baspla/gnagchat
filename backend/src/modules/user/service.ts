@@ -2,8 +2,8 @@ import { db } from '../../db'
 import { RedactedUser, User, user } from '../../db/schema'
 import { eq } from 'drizzle-orm'
 
-export class UserService {
-    async getUserById (id: string) : Promise<User> {
+export abstract class UserService {
+    static async getUserById (id: string) : Promise<User> {
         const [userData] = await db
             .select()
             .from(user)
@@ -14,7 +14,7 @@ export class UserService {
         return userData
     }
 
-    async getRedactedUserById (id: string) : Promise<RedactedUser> {
+    static async getRedactedUserById (id: string) : Promise<RedactedUser> {
         const [userData] = await db
             .select({
                 id: user.id,
@@ -28,7 +28,7 @@ export class UserService {
         return userData
     }
 
-    async getUserForUser(currentUserId: string, targetUserId: string) : Promise<RedactedUser|User> {
+    static async getUserAsUser(currentUserId: string, targetUserId: string) : Promise<RedactedUser|User> {
         if (currentUserId === targetUserId) {
             return await this.getUserById(targetUserId)
         }else {
@@ -36,7 +36,7 @@ export class UserService {
         }
     }
 
-    async upsertUserAsSystem (data: { id: string; name: string; email: string; emailVerified?: boolean; image?: string|null; groups?: string }) : Promise<User> {
+    static async upsertUserAsSystem (data: { id: string; name: string; email: string; emailVerified?: boolean; image?: string|null; groups?: string }) : Promise<User> {
         const [result] = await db
             .insert(user)
             .values(data)
