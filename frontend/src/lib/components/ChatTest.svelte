@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { subscribeToChannel } from '$lib/centrifugo.svelte';
+	import { subscribeToChannel, disconnectCentrifuge } from '$lib/centrifugo.svelte';
 	import { api } from '$lib/api';
 	import type { Subscription } from 'centrifuge';
 
@@ -78,14 +78,11 @@
 	}
 
 	function connect() {
-		if (subscription) {
-			subscription.unsubscribe();
-		}
 		if (!selectedRoomId) return;
 
-		subscription = subscribeToChannel(`room:${selectedRoomId}`);
+		const sub = subscribeToChannel(`room:${selectedRoomId}`);
 
-		subscription.on('publication', (ctx) => {
+		sub.on('publication', (ctx) => {
 			const data = ctx.data as { userId?: string; content?: string; createdAt?: string };
 			messages = [...messages, {
 				userId: data.userId ?? 'unknown',
@@ -93,11 +90,21 @@
 				createdAt: data.createdAt ?? new Date().toISOString(),
 			}];
 		});
+
+		return sub;
 	}
 
 	$effect(() => {
 		// Re-connect whenever selectedRoomId changes
-		connect();
+		const sub = connect();
+		subscription = sub ?? null;
+
+		return () => {
+			if (sub) {
+				sub.unsubscribe();
+			}
+			subscription = null;
+		};
 	});
 
 	onMount(() => {
@@ -108,6 +115,7 @@
 		if (subscription) {
 			subscription.unsubscribe();
 		}
+		disconnectCentrifuge();
 	});
 
 	async function sendMessage() {

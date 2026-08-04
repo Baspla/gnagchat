@@ -4,5 +4,12 @@
     "proxy_connect_timeout": "2s",
     "proxy_subscribe_timeout": "2s",
     "allowed_origins": ["*"],
-    "api_key": ""
+    "http_api": {
+        "key": "${CENTRIFUGO_API_KEY}"
+    },
+    "admin": {
+        "enabled": true,
+        "password": "${CENTRIFUGO_ADMIN_PASSWORD}",
+        "secret": "${CENTRIFUGO_ADMIN_SECRET}"
+    }
 }
