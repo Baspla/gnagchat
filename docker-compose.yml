@@ -1,44 +1,61 @@
 services:
   frontend:
-    image: gnagchat-frontend
+    image: ghcr.io/baspla/gnagchat-frontend:latest
     container_name: gnagchat_frontend
     env_file:
       - .env
     environment:
       - PORT=8080
-    ports:
-      - "8080:8080"
+    networks:
+      - proxy
+      - gnagchat
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          memory: 128M
   backend:
-    image: gnagchat-backend
+    image: ghcr.io/baspla/gnagchat-backend:latest
     container_name: gnagchat_backend
     env_file:
       - .env
     networks:
       - gnagchat
+      - proxy
     ports:
       - "8081:3000"
     volumes:
       - gnagchat_data:/app/backend/data
     restart: unless-stopped
-  centrifugo:
-    image: centrifugo/centrifugo:v5
-    container_name: gnagchat_centrifugo
-    env_file:
-      - .env
-    environment:
-      - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
-      - CENTRIFUGO_ADMIN_PASSWORD=${CENTRIFUGO_ADMIN_PASSWORD}
-      - CENTRIFUGO_ADMIN_SECRET=${CENTRIFUGO_ADMIN_SECRET}
+    depends_on:
+      livekit:
+        condition: service_healthy
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: gnagchat_livekit
+    command:
+      - --config
+      - /etc/livekit.yaml
     networks:
       - gnagchat
-    ports:
-      - "8082:8000"
+      - proxy
     volumes:
-      - ./centrifugo/config.json:/centrifugo/config.json
-    command: centrifugo -c /centrifugo/config.json
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    expose:
+      - "7880"  # WebSocket signaling (proxied)
+    ports:
+      - "7882:7882/udp"  # WebRTC media (UDP, must be direct)
+      - "7881:7881/tcp"  # WebRTC media fallback when UDP is unavailable
+      - "3478:3478/udp"  # TURN/STUN relay for NAT traversal
     restart: unless-stopped
-
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:7880"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
 volumes:
   gnagchat_data:
     driver: local
@@ -46,3 +63,5 @@ volumes:
 networks:
   gnagchat:
     driver: bridge
+  proxy:
+    external: true

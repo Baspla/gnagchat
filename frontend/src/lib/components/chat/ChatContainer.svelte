@@ -8,7 +8,10 @@
 
   onMount(() => {
     loadChannels();
-    initSse();
+    const unsubscribe = initSse();
+    return () => {
+      unsubscribe();
+    };
   });
 </script>
 

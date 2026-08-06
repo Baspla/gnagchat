@@ -92,7 +92,7 @@ export async function sendMessage(content: string) {
  * and routes message_created events into the correct room's message array.
  */
 export function initSse() {
-    sseEvent.subscribe((event) => {
+    return sseEvent.subscribe((event) => {
         if (!event || event.event !== 'message_created') return;
 
         const msg = event.data as ChatMessage;
@@ -104,7 +104,7 @@ export function initSse() {
         // Avoid duplicating if the message already exists (e.g. from optimistic send)
         const exists = chat.messages[msg.roomId].some((m) => m.id === msg.id);
         if (!exists) {
-            chat.messages[msg.roomId] = [...chat.messages[msg.roomId], msg];
+            chat.messages[msg.roomId].push(msg);
         }
     });
 }
