@@ -1,15 +1,21 @@
 <script lang="ts">
   import { authClient } from "$lib/auth-client";
-  import { api } from "$lib/api";
   import type { PageData } from "./$types";
   import { env } from "$env/dynamic/public";
   import { onMount } from "svelte";
-    import ChatTest from "$lib/components/ChatTest.svelte";
+  import { connectToGateway } from "$lib/sse";
+  import ChatContainer from "$lib/components/chat/ChatContainer.svelte";
 
   let { data }: { data: PageData } = $props();
 
   const session = authClient.useSession();
   const user = $derived($session.data?.user ?? data.user ?? null);
+
+  onMount(() => {
+    if (user) {
+      connectToGateway();
+    }
+  });
 
   async function login() {
     console.log("Logging in with provider:", env.PUBLIC_VITE_OAUTH_PROVIDER_ID || "gnagplus");
@@ -18,6 +24,7 @@
       callbackURL: "/",
     });
   }
+
   async function logout() {
     await authClient.signOut();
     window.location.href = "/";
@@ -29,7 +36,7 @@
     Logout
   </button>
   <p>Angemeldet als {user.name}</p>
-  <ChatTest />
+  <ChatContainer />
 {:else}
   <div class="h-screen w-screen flex items-center justify-center">
     <div class="rounded-lg p-8 w-full max-w-md mx-4 shadow-2xl">

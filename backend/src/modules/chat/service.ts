@@ -1,4 +1,5 @@
 import { eq, and, gt, desc, or } from 'drizzle-orm';
+import { sse } from 'elysia';
 import { db } from '../../db';
 import { message, roomReadState, room, channel, directMessage } from './schema';
 import type {Room} from './schema';
@@ -6,7 +7,7 @@ import { PermissionService } from '../permission/service';
 import { userRole } from '../permission/schema';
 import { user } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
-import { CentrifugoService } from '../centrifugo/service';
+import { globalBus } from '../realtime/service';
 
 export class ChatService {
 
@@ -89,23 +90,16 @@ export class ChatService {
             content,
         }).returning();
 
-        // 4. Publish message to room channel via Centrifugo
-        await CentrifugoService.publishToCentrifugo(`room:${roomId}`, 'chat_message', savedMessage);
+        // 4. Publish message to room channel
+        globalBus.emit(`room:${roomId}`, sse({
+            event: 'message_created',
+            data: savedMessage
+        }));
 
         console.log(`Message saved and published to room ${roomId}:`, savedMessage);
 
         // 5. Fetch all users who have access to this room (excluding the sender)
         const roomMembers = await this.getRoomMemberIdsAsSystem(roomId);
-
-        // 6. Push an unread/sidebar ping to everyone else's personal user channel via Centrifugo
-        for (const memberId of roomMembers) {
-            if (memberId !== userId) {
-                await CentrifugoService.publishToCentrifugo(`user:${memberId}`, 'room_activity', {
-                    roomId: roomId,
-                    message: savedMessage,
-                });
-            }
-        }
 
         return savedMessage;
     }

@@ -6,7 +6,7 @@ import { closeDb } from './db';
 import { authMiddleware } from './modules/auth';
 import { userModule } from './modules/user';
 import { chatModule } from './modules/chat';
-import { centrifugoModule } from './modules/centrifugo';
+import { realtimeModule } from './modules/realtime';
 
 
 export const app = new Elysia()
@@ -30,7 +30,7 @@ export const app = new Elysia()
                     .get('/status', () => ({ status: 'online' }))
                     .use(userModule)
                     .use(chatModule)
-                    .use(centrifugoModule)
+                    .use(realtimeModule)
             )
     )
     .listen(3000);
