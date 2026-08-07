@@ -1,6 +1,7 @@
 import { api } from './api';
 import { sseEvent, activeRoomId, clearUnread } from './sse';
 import type { DtoChatMessage } from '@gnagchat/shared/dto';
+import { setPageTitle } from './utils';
 
 // ── Reactive state (module-level, shared across all importers) ──
 // Wrapped in a single exported object so Svelte 5 allows property mutation
@@ -67,6 +68,7 @@ export async function deleteChannel(roomId: string) {
     }
     delete chat.messages[roomId];
 
+	setPageTitle();
     await loadChannels();
     return true;
 }
@@ -92,6 +94,8 @@ export async function selectChannel(roomId: string) {
     // API returns messages with most recent first; reverse for chronological order
     const history = (data as DtoChatMessage[]).slice().reverse();
     chat.messages[roomId] = history;
+
+	setPageTitle(chat.channels.find(c => c.roomId === roomId)?.name);
 }
 
 /**

@@ -11,18 +11,20 @@
   }
 </script>
 
-<div>
+<div class="p-4 flex">
   <input
     type="text"
     bind:value={content}
     placeholder="Type a message..."
     disabled={!chat.activeChannelId}
     onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
+    class="border rounded px-2 py-1 mr-2 w-full"
   />
   <button
     onclick={handleSubmit}
     disabled={!chat.activeChannelId || !content.trim()}
+    class="border rounded px-3 py-1"
   >
-    Send
+    Senden
   </button>
 </div>

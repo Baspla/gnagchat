@@ -5,6 +5,7 @@
   import { onMount } from "svelte";
   import { connectToGateway } from "$lib/sse";
   import ChatContainer from "$lib/components/chat/ChatContainer.svelte";
+    import { setPageTitle } from "$lib/utils";
 
   let { data }: { data: PageData } = $props();
 
@@ -12,6 +13,7 @@
   const user = $derived($session.data?.user ?? data.user ?? null);
 
   onMount(() => {
+	setPageTitle();
     if (user) {
       connectToGateway();
     }
@@ -32,11 +34,7 @@
 </script>
 
 {#if user}
-  <button onclick={logout} class="bg-emerald-400 text-white px-4 py-2 rounded-lg shadow-lg">
-    Logout
-  </button>
-  <p>Angemeldet als {user.name}</p>
-  <ChatContainer />
+  <ChatContainer userName={user.name} onLogout={logout} />
 {:else}
   <div class="h-screen w-screen flex items-center justify-center">
     <div class="rounded-lg p-8 w-full max-w-md mx-4 shadow-2xl">
