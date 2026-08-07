@@ -43,6 +43,7 @@ export async function connectToGateway() {
         for await (const chunk of data) {
             const event = chunk as SseEvent;
             sseEvent.set(event);
+            console.log('Received SSE event:', event);
 
             if (event.event === 'message_created') {
                 const msg = event.data;
@@ -50,7 +51,6 @@ export async function connectToGateway() {
 
                 if (msg.roomId === currentRoom) {
                     // Render message to chat box (handled by components)
-                    console.log('Render message to chat box:', msg.content);
                 } else {
                     // Increment unread badge for this room
                     unreadCounts.update(counts => ({

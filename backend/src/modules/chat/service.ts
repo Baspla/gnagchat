@@ -95,10 +95,13 @@ export class ChatService {
             where: eq(user.id, userId)
         });
 
+        const dto = await this.transformMessageToDto(savedMessage);
+        console.log(`dto for saved message:`, dto);
+
         // 4. Publish message to room channel
         globalBus.emit(`room:${roomId}`, sse({
             event: 'message_created',
-            data: this.transformMessageToDto(savedMessage),
+            data: dto,
         }));
 
         console.log(`Message saved and published to room ${roomId}:`, savedMessage);
@@ -227,6 +230,17 @@ export class ChatService {
             roomId: newRoom.id,
             name: trimmedName,
         });
+
+        const memberIds = await this.getRoomMemberIdsAsSystem(newRoom.id);
+
+        for (const memberId of memberIds) {
+            await recalculateSubscriptions(memberId);
+        }
+
+        globalBus.emit(`room:${newRoom.id}`, sse({
+            event: 'channel_created',
+            data: { roomId: newRoom.id, name: trimmedName },
+        }));
 
         return {
             roomId: newRoom.id,
