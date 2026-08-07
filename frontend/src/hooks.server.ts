@@ -7,7 +7,7 @@ type SessionResponse = {
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const backendBaseUrl = env.VITE_API_URL_INTERNAL ?? 'http://localhost:3000';
+	const backendBaseUrl = env.GNAGCHAT_API_URL_INTERNAL ?? 'http://localhost:3000';
 	const sessionEndpoint = `${backendBaseUrl}/betterauth/auth/get-session`;
 
 	// Ensure locals are always defined, even when no valid session exists.

@@ -11,24 +11,26 @@ const requireEnv = (key: string): string => {
     return value;
 };
 
-const oauthDiscoveryUrl = readEnv('OAUTH_DISCOVERY_URL');
-const oauthClientId = readEnv('OAUTH_CLIENT_ID');
-const oauthClientSecret = readEnv('OAUTH_CLIENT_SECRET');
+const oauthDiscoveryUrl = readEnv('GNAGCHAT_OAUTH_DISCOVERY_URL');
+const oauthClientId = readEnv('GNAGCHAT_OAUTH_CLIENT_ID');
+const oauthClientSecret = readEnv('GNAGCHAT_OAUTH_CLIENT_SECRET');
 
 if (!oauthDiscoveryUrl || !oauthClientId || !oauthClientSecret) {
     throw new Error(
-        'Incomplete OAuth configuration. Set OAUTH_DISCOVERY_URL, OAUTH_CLIENT_ID and OAUTH_CLIENT_SECRET together.'
+        'Incomplete OAuth configuration. Set GNAGCHAT_OAUTH_DISCOVERY_URL, GNAGCHAT_OAUTH_CLIENT_ID and GNAGCHAT_OAUTH_CLIENT_SECRET together.'
     );
 }
 
 export const env = {
-    DATABASE_URL: requireEnv('DATABASE_URL'),
-    BETTER_AUTH_URL: readEnv('BETTER_AUTH_URL') ?? 'http://localhost:5173',
-    OAUTH_PROVIDER_ID: readEnv('OAUTH_PROVIDER_ID') ?? 'generic-oauth',
+    DATABASE_URL: requireEnv('GNAGCHAT_DATABASE_URL'),
+    BETTER_AUTH_URL: readEnv('GNAGCHAT_BETTER_AUTH_URL') ?? 'http://localhost:5173',
+    BETTER_AUTH_SECRET: readEnv('GNAGCHAT_BETTER_AUTH_SECRET') ?? '',
+    OAUTH_PROVIDER_ID: readEnv('GNAGCHAT_OAUTH_PROVIDER_ID') ?? 'generic-oauth',
     OAUTH_DISCOVERY_URL: oauthDiscoveryUrl,
     OAUTH_CLIENT_ID: oauthClientId,
     OAUTH_CLIENT_SECRET: oauthClientSecret,
-    API_URL_INTERNAL: readEnv('VITE_API_URL_INTERNAL') ?? 'http://localhost:3000/api',
-    CENTRIFUGO_API_KEY: readEnv('CENTRIFUGO_API_KEY') ?? '',
-    CENTRIFUGO_URL: readEnv('CENTRIFUGO_URL') ?? 'http://centrifugo:8000',
+    API_URL_INTERNAL: readEnv('GNAGCHAT_API_URL_INTERNAL') ?? 'http://localhost:3000/api',
+    LIVEKIT_API_KEY: readEnv('LIVEKIT_API_KEY') ?? 'devkey',
+    LIVEKIT_API_SECRET: readEnv('LIVEKIT_API_SECRET') ?? 'devsecret',
+    LIVEKIT_URL: readEnv('LIVEKIT_URL') ?? 'http://localhost:7880',
 };

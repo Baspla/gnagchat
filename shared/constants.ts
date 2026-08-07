@@ -4,6 +4,7 @@ export const Modules = {
     USER: 'user',
     PERMISSION: 'permission',
     AUTH: 'auth',
+    VOICE: 'voice',
 } as const;
 
 export type ModuleId = typeof Modules[keyof typeof Modules]; 
