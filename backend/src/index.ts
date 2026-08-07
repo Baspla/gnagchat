@@ -7,6 +7,7 @@ import { authMiddleware } from './modules/auth';
 import { userModule } from './modules/user';
 import { chatModule } from './modules/chat';
 import { realtimeModule } from './modules/realtime';
+import { voiceModule } from './modules/voice';
 
 
 export const app = new Elysia()
@@ -31,6 +32,7 @@ export const app = new Elysia()
                     .use(userModule)
                     .use(chatModule)
                     .use(realtimeModule)
+                    .use(voiceModule)
             )
     )
     .listen(3000);

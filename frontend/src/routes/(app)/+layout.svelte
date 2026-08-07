@@ -6,6 +6,7 @@
   import type { LayoutData } from "./$types";
   import ChannelCreate from "$lib/components/chat/ChannelCreate.svelte";
   import ChannelPicker from "$lib/components/chat/ChannelPicker.svelte";
+  import VoiceCall from "$lib/components/VoiceCall.svelte";
 
   let { data, children }: { data: LayoutData; children: import("svelte").Snippet } = $props();
 
@@ -35,7 +36,8 @@
     <aside class="flex flex-col w-64 border-r p-4">
       <ChannelCreate />
       <ChannelPicker />
-      <div class="mt-auto pt-4">
+      <VoiceCall />
+      <div class="pt-4">
         <p class="mb-2">{user.name}</p>
         <button onclick={logout} class="text-red-500">Logout</button>
       </div>

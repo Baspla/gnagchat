@@ -29,4 +29,8 @@ export const env = {
     OAUTH_DISCOVERY_URL: oauthDiscoveryUrl,
     OAUTH_CLIENT_ID: oauthClientId,
     OAUTH_CLIENT_SECRET: oauthClientSecret,
-    API_URL_INTERNAL: readEnv('GNAGCHAT_API_URL_INTERNAL') ?? 'http://localhost:3000/api',};
+    API_URL_INTERNAL: readEnv('GNAGCHAT_API_URL_INTERNAL') ?? 'http://localhost:3000/api',
+    LIVEKIT_API_KEY: readEnv('LIVEKIT_API_KEY') ?? 'devkey',
+    LIVEKIT_API_SECRET: readEnv('LIVEKIT_API_SECRET') ?? 'devsecret',
+    LIVEKIT_URL: readEnv('LIVEKIT_URL') ?? 'http://localhost:7880',
+};
