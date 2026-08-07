@@ -6,6 +6,7 @@ import { eq, and, or } from 'drizzle-orm';
 import { PermissionService } from '../permission/service';
 
 export const globalBus = new EventEmitter();
+globalBus.setMaxListeners(1000); // Increase max listeners to avoid warnings in large deployments
 
 // Map tracking active connections: Map<userId, Map<connectionId, Session>>
 interface ConnectionSession {
@@ -16,14 +17,21 @@ const userSessions = new Map<string, Map<string, ConnectionSession>>();
 
 // 1. Register a new stream session
 export function registerConnection(userId: string, connectionId: string, push: (event: ReturnType<typeof sse>) => void) {
-  if (!userSessions.has(userId)) userSessions.set(userId, new Map());
+  console.log(`Registering connection for user ${userId}, connection ${connectionId}`);
+  if (!userSessions.has(userId)) {
+    console.log(`Creating new session map for user ${userId}`);
+    userSessions.set(userId, new Map());
+  }
   userSessions.get(userId)!.set(connectionId, { push, activeTopics: new Set() });
+  console.log(`Active connections for user ${userId}: ${userSessions.get(userId)!.size}`);
 }
 
 // 2. Clean up event listeners & memory on disconnect
 export function unregisterConnection(userId: string, connectionId: string) {
+  console.log(`Unregistering connection for user ${userId}, connection ${connectionId}`);
   const userConns = userSessions.get(userId);
   if (!userConns) return;
+  console.log(`Active connections for user ${userId} before cleanup: ${userConns.size}`);
 
   const session = userConns.get(connectionId);
   if (session) {
@@ -41,6 +49,7 @@ export function unregisterConnection(userId: string, connectionId: string) {
  * then diffs against currently subscribed topics and updates them.
  */
 export async function recalculateSubscriptions(userId: string) {
+  console.log(`Recalculating subscriptions for user ${userId}`);
   const userConns = userSessions.get(userId);
   if (!userConns) return; // Offline, nothing to sync
 

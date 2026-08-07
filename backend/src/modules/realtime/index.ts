@@ -33,6 +33,14 @@ export const realtimeModule = new Elysia({ prefix: '/gateway', name: Modules.GAT
                 if (queue.length === 0) {
                     await new Promise<void>((resolve) => {
                         resolveNext = resolve;
+                        if (request.signal.aborted) {
+                            resolve();
+                            resolveNext = null;
+                        }
+                        request.signal.addEventListener('abort', () => {
+                            resolve();
+                            resolveNext = null;
+                        }, { once: true });
                     });
                 }
                 while (queue.length > 0) {
