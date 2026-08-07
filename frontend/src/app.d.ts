@@ -18,7 +18,10 @@ declare global {
 				[key: string]: unknown;
 			} | null;
 		}
-		// interface PageData {}
+		interface PageData {
+			session: App.Locals['session'];
+			user: App.Locals['user'];
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

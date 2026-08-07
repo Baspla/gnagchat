@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { createChannel } from '$lib/chat.svelte';
+  import { chat, createChannel } from '$lib/chat.svelte';
+  import { goto } from '$app/navigation';
 
   let name = $state('');
 
@@ -9,6 +10,11 @@
     const ok = await createChannel(trimmed);
     if (ok) {
       name = '';
+      // Navigate to the newly created channel (last one in the list, since it was just appended)
+      const newest = chat.channels[chat.channels.length - 1];
+      if (newest) {
+        goto(`/chat/${newest.roomId}`);
+      }
     }
   }
 </script>

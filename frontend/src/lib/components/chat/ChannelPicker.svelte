@@ -1,11 +1,22 @@
 <script lang="ts">
-  import { chat, selectChannel, deleteChannel } from '$lib/chat.svelte';
+  import { chat, deleteChannel } from '$lib/chat.svelte';
+  import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+
+  const currentPath = $derived($page.url.pathname);
 
   async function handleDeleteChannel() {
     if (!chat.activeChannelId) return;
     if (confirm('U sure?')) {
-      await deleteChannel(chat.activeChannelId);
+      const deletedRoomId = chat.activeChannelId;
+      await deleteChannel(deletedRoomId);
+      // Navigate back to home if the deleted channel was the active one
+      goto("/");
     }
+  }
+
+  function navigateToChannel(roomId: string) {
+    goto(`/chat/${roomId}`);
   }
 </script>
 
@@ -18,9 +29,9 @@
     {#each chat.channels as channel}
       <li class="mb-1">
         <button
-          onclick={() => selectChannel(channel.roomId)}
+          onclick={() => navigateToChannel(channel.roomId)}
           class="w-full text-left px-2 py-1 rounded"
-          style={chat.activeChannelId === channel.roomId ? 'font-weight: bold; background-color: #e0e0e0;' : ''}
+          style={currentPath === `/chat/${channel.roomId}` ? 'font-weight: bold; background-color: #e0e0e0;' : ''}
         >
           {channel.name}
         </button>

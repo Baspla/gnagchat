@@ -35,14 +35,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
+/*
 /** @type {import('@sveltejs/kit').HandleServerError} */
+/*
 export function handleError({ error, event }) {
     // This WILL print to your terminal stdout in production
     console.error('--- PRODUCTION ERROR CAUGHT ---');
     console.error(error); 
     console.error('--------------------------------');
-
+	return 
     return {
         message: 'Something went wrong, but we logged it!'
     };
-}
+}*/
