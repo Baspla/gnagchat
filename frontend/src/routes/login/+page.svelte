@@ -9,9 +9,9 @@
   });
 
   async function login() {
-    console.log("Logging in with provider:", env.PUBLIC_VITE_OAUTH_PROVIDER_ID || "gnagplus");
+    console.log("Logging in with provider:", env.PUBLIC_GNAGCHAT_OAUTH_PROVIDER_ID || "gnagplus");
     await authClient.signIn.social({
-      provider: env.PUBLIC_VITE_OAUTH_PROVIDER_ID || "gnagplus",
+      provider: env.PUBLIC_GNAGCHAT_OAUTH_PROVIDER_ID || "gnagplus",
       callbackURL: "/",
     });
   }
@@ -26,7 +26,7 @@
       <div class="text-center">
         <h1 class="text-2xl font-bold mb-1">Hallo!</h1>
         <button onclick={login} class="bg-emerald-400 text-white px-4 py-2 rounded-lg shadow-lg">
-          Login mit {env.PUBLIC_VITE_OAUTH_PROVIDER_ID || "Gnagplus"}</button>
+          Login mit {env.PUBLIC_GNAGCHAT_OAUTH_PROVIDER_ID || "Gnagplus"}</button>
       </div>
     </div>
   </div>

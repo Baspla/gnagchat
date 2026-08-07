@@ -8,6 +8,7 @@ import { UserService } from "../user/service";
 const userService = UserService;
 
 export const auth = betterAuth({
+	secret: env.BETTER_AUTH_SECRET || undefined,
 	database: drizzleAdapter(db, {
 		provider: "sqlite",
 	}),
