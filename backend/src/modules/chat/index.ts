@@ -30,6 +30,18 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
     }, {
         auth: true
     })
+    .delete('/channels/:roomId', async ({ user, params, status, chatService }) => {
+        try {
+            return await chatService.deleteChannelAsUser(user.id, params.roomId);
+        } catch (e: any) {
+            return status('Forbidden', e.message || 'Failed to delete channel');
+        }
+    }, {
+        params: t.Object({
+            roomId: t.String()
+        }),
+        auth: true
+    })
     .post('/rooms/:roomId/messages', async ({ user, params, body, status, chatService }) => {
         try {
             console.log(`User ${user.id} is sending a message to room ${params.roomId}: ${body.content}`);

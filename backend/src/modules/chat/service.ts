@@ -1,13 +1,12 @@
-import { eq, and, gt, desc, or } from 'drizzle-orm';
+import { eq, and, gt, desc, or, inArray } from 'drizzle-orm';
 import { sse } from 'elysia';
 import { db } from '../../db';
-import { message, roomReadState, room, channel, directMessage } from './schema';
-import type {Room} from './schema';
+import { message, roomReadState, room, channel, directMessage, Message } from './schema';
 import { PermissionService } from '../permission/service';
-import { userRole } from '../permission/schema';
-import { user } from '../user/schema';
+import { User, user } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
-import { globalBus } from '../realtime/service';
+import { globalBus, recalculateSubscriptions } from '../realtime/service';
+import { DtoUser, DtoChatMessage } from '$shared/dto/chat';
 
 export class ChatService {
 
@@ -90,10 +89,16 @@ export class ChatService {
             content,
         }).returning();
 
+        // 4. Get User info for DTO
+
+        const userRecord: User | undefined = await db.query.user.findFirst({
+            where: eq(user.id, userId)
+        });
+
         // 4. Publish message to room channel
         globalBus.emit(`room:${roomId}`, sse({
             event: 'message_created',
-            data: savedMessage
+            data: this.transformMessageToDto(savedMessage),
         }));
 
         console.log(`Message saved and published to room ${roomId}:`, savedMessage);
@@ -113,11 +118,12 @@ export class ChatService {
         await this.canViewRoomAsUser(userId, roomId);
 
         // 2. Fetch history
-        return await db.query.message.findMany({
+        const messages =  await db.query.message.findMany({
             where: eq(message.roomId, roomId),
             orderBy: [desc(message.createdAt)],
             limit,
         });
+        return this.transformMessagesToDto(messages);
     }
 
     static async getRoomMemberIdsAsSystem(roomId: string): Promise<string[]> {
@@ -230,6 +236,49 @@ export class ChatService {
     }
 
     /**
+     * Deletes a channel after validating the user has the 'delete_channel' permission.
+     */
+    static async deleteChannelAsUser(userId: string, channelId: string) {
+        // 1. Check permission
+        const canDelete = await PermissionService.hasPermissionInChannel(userId, channelId, 'delete_channel');
+        if (!canDelete) {
+            throw new Error('Forbidden: Insufficient permissions to delete this channel');
+        }
+
+        // 2. Verify the room exists and is a channel
+        const targetRoom = await db.query.room.findFirst({
+            where: eq(room.id, channelId)
+        });
+
+        if (!targetRoom) {
+            throw new Error('Channel not found');
+        }
+
+        if (targetRoom.type !== 'channel') {
+            throw new Error('Room is not a channel');
+        }
+
+        // 3. Get all member IDs before deletion (for subscription recalculation)
+        const memberIds = await this.getRoomMemberIdsAsSystem(channelId);
+
+        // 4. Delete the room (cascade deletes channel, messages, read states)
+        await db.delete(room).where(eq(room.id, channelId));
+
+        // 5. Publish channel_deleted event to the room topic
+        globalBus.emit(`room:${channelId}`, sse({
+            event: 'channel_deleted',
+            data: { roomId: channelId },
+        }));
+
+        // 6. Recalculate subscriptions for all members so they stop receiving events for this room
+        for (const memberId of memberIds) {
+            await recalculateSubscriptions(memberId);
+        }
+
+        return { success: true };
+    }
+
+    /**
      * Returns all channels the user has permission to view, ordered by creation date.
      */
     static async getAccessibleChannelsAsUser(userId: string): Promise<{ roomId: string; name: string; createdAt: Date }[]> {
@@ -253,5 +302,58 @@ export class ChatService {
         }
 
         return accessible;
+    }
+
+    static async transformMessagesToDto(messages: Message[]): Promise<DtoChatMessage[]> {
+        const dtos: DtoChatMessage[] = [];
+        const authorIds = Array.from(new Set(messages.map(m => m.userId)));
+
+        const authors = await db.select().from(user).where(inArray(user.id, authorIds));
+
+        const authorMap: Record<string, DtoUser> = {};
+
+        for (const a of authors) {
+            authorMap[a.id] = this.transformUserToDto(a);
+        }
+
+        for (const msg of messages) {
+            const dtoAuthor = authorMap[msg.userId] || {
+                id: msg.userId,
+                displayName: null,
+                avatarUrl: null,
+            };
+
+            dtos.push(this.transformMessageToDtoWithAuthor(msg, dtoAuthor));
+        }
+        return dtos;
+    }
+
+    static transformUserToDto(user: User): DtoUser {
+        return {
+            id: user.id,
+            displayName: user.name || null,
+            avatarUrl: user.image || null
+        };
+    }
+
+    static transformMessageToDto(msg: Message): Promise<DtoChatMessage> {
+        return this.transformMessagesToDto([msg]).then(dtos => dtos[0]);
+    }
+
+    static transformMessageToDtoWithAuthor(msg: Message, author: DtoUser): DtoChatMessage {
+        return {
+            id: msg.id,
+            roomId: msg.roomId,
+            author,
+            content: msg.content,
+            createdAt: msg.createdAt,
+            editedAt: msg.createdAt,
+            mentions: [], // Populate mentions if applicable
+            emojis: [], // Populate emojis if applicable
+            reactions: [], // Populate reactions if applicable
+            nonce: '', // Use a nonce if needed
+            pinned: false, // Set pinned status if applicable
+            type: 'text',
+        };
     }
 }

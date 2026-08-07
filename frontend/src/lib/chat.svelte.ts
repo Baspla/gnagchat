@@ -1,6 +1,6 @@
 import { api } from './api';
 import { sseEvent, activeRoomId, clearUnread } from './sse';
-import type { ChatMessage } from '@gnagchat/shared/dto';
+import type { DtoChatMessage } from '@gnagchat/shared/dto';
 
 // ── Reactive state (module-level, shared across all importers) ──
 // Wrapped in a single exported object so Svelte 5 allows property mutation
@@ -14,7 +14,7 @@ export const chat = $state({
     activeChannelId: null as string | null,
 
     /** Per-room message arrays, keyed by roomId. */
-    messages: {} as Record<string, ChatMessage[]>,
+    messages: {} as Record<string, DtoChatMessage[]>,
 });
 
 // Eden treaty helper type for the chat API
@@ -51,6 +51,27 @@ export async function createChannel(name: string) {
 }
 
 /**
+ * Deletes the given channel and refreshes the channel list.
+ */
+export async function deleteChannel(roomId: string) {
+    const { error } = await chatApi.channels({ roomId }).delete();
+    if (error) {
+        console.error('Failed to delete channel:', error);
+        return false;
+    }
+
+    // Clear local state for the deleted channel
+    if (chat.activeChannelId === roomId) {
+        chat.activeChannelId = null;
+        activeRoomId.set(null);
+    }
+    delete chat.messages[roomId];
+
+    await loadChannels();
+    return true;
+}
+
+/**
  * Selects a channel: sets activeChannelId, loads message history, clears unread badge.
  */
 export async function selectChannel(roomId: string) {
@@ -69,7 +90,7 @@ export async function selectChannel(roomId: string) {
     }
 
     // API returns messages with most recent first; reverse for chronological order
-    const history = (data as ChatMessage[]).slice().reverse();
+    const history = (data as DtoChatMessage[]).slice().reverse();
     chat.messages[roomId] = history;
 }
 
@@ -93,9 +114,26 @@ export async function sendMessage(content: string) {
  */
 export function initSse() {
     return sseEvent.subscribe((event) => {
-        if (!event || event.event !== 'message_created') return;
+        if (!event) return;
 
-        const msg = event.data as ChatMessage;
+        if (event.event === 'channel_deleted') {
+            const { roomId } = event.data;
+
+            // Clear local state for the deleted channel
+            if (chat.activeChannelId === roomId) {
+                chat.activeChannelId = null;
+                activeRoomId.set(null);
+            }
+            delete chat.messages[roomId];
+
+            // Reload the channel list
+            loadChannels();
+            return;
+        }
+
+        if (event.event !== 'message_created') return;
+
+        const msg = event.data as DtoChatMessage;
 
         if (!chat.messages[msg.roomId]) {
             chat.messages[msg.roomId] = [];

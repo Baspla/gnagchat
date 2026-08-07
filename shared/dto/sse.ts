@@ -1,5 +1,5 @@
 import { t } from "elysia";
-import { ChatMessageSchema } from "./chat";
+import { DtoChatMessageSchema } from "./chat";
 
 /**
  * SSE event payloads sent down the unified gateway stream.
@@ -8,7 +8,7 @@ import { ChatMessageSchema } from "./chat";
 export const SseEventSchema = t.Union([
     t.Object({
         event: t.Literal("message_created"),
-        data: ChatMessageSchema,
+        data: DtoChatMessageSchema,
     }),
     t.Object({
         event: t.Literal("typing_indicator"),
@@ -30,6 +30,12 @@ export const SseEventSchema = t.Union([
         data: t.Object({
             roomId: t.String(),
             userId: t.String(),
+        }),
+    }),
+    t.Object({
+        event: t.Literal("channel_deleted"),
+        data: t.Object({
+            roomId: t.String(),
         }),
     }),
     t.Object({

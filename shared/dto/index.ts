@@ -1,6 +1,4 @@
-export { ChatMessageSchema } from "./chat";
-export type { ChatMessage } from "./chat";
-export { ServerWsMessageSchema, ClientWsMessageSchema } from "./ws";
-export type { ServerWsMessage, ClientWsMessage } from "./ws";
+export { DtoChatMessageSchema, DtoUserSchema, DtoEmojiSchema, DtoReactionSchema } from "./chat";
+export type { DtoChatMessage, DtoUser, DtoEmoji, DtoReaction } from "./chat";
 export { SseEventSchema } from "./sse";
 export type { SseEvent } from "./sse";

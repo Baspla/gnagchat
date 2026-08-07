@@ -5,6 +5,7 @@ export const PERMISSIONS = [
     'send_messages',
     'manage_messages',
     'manage_roles',
+    'delete_channel',
     'admin'
 ] as const;
 

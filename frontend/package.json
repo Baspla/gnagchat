@@ -15,7 +15,8 @@
     "@gnagchat/shared": "workspace:*",
     "better-auth": "^1.6.23",
     "bits-ui": "^2.18.1",
-    "centrifuge": "^5.7.0"
+    "centrifuge": "^5.7.0",
+    "livekit-client": "^2.21.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^7.0.0",

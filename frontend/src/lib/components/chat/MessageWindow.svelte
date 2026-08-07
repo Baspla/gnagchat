@@ -15,16 +15,16 @@
   });
 
   const currentMessages = $derived(chat.activeChannelId ? chat.messages[chat.activeChannelId] ?? [] : []);
+
 </script>
 
 <div>
-  <h3>Messages</h3>
+  <h3 class="text-lg font-semibold">Messages</h3>
   {#if chat.activeChannelId}
     <div bind:this={containerEl} style="overflow-y: auto; max-height: 400px;">
       {#each currentMessages as msg}
         <div>
-          <strong>{msg.userId}</strong>: {msg.content}
-          <em>{new Date(msg.createdAt).toLocaleTimeString()}</em>
+          <strong title={msg.createdAt.toString()}>{msg.author.displayName || msg.author.id}</strong>: {msg.content}
         </div>
       {/each}
     </div>
