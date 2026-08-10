@@ -5,7 +5,6 @@ import { message, roomReadState, room, channel, directMessage, Message } from '.
 import { PermissionService } from '../permission/service';
 import { User, user } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
-import { globalBus, recalculateSubscriptions } from '../realtime/service';
 import { DtoUser, DtoChatMessage } from '$shared/dto/chat';
 
 export class ChatService {
@@ -99,10 +98,7 @@ export class ChatService {
         console.log(`dto for saved message:`, dto);
 
         // 4. Publish message to room channel
-        globalBus.emit(`room:${roomId}`, sse({
-            event: 'message_created',
-            data: dto,
-        }));
+        //TODO
 
         console.log(`Message saved and published to room ${roomId}:`, savedMessage);
 
@@ -233,14 +229,7 @@ export class ChatService {
 
         const memberIds = await this.getRoomMemberIdsAsSystem(newRoom.id);
 
-        for (const memberId of memberIds) {
-            await recalculateSubscriptions(memberId);
-        }
-
-        globalBus.emit(`room:${newRoom.id}`, sse({
-            event: 'channel_created',
-            data: { roomId: newRoom.id, name: trimmedName },
-        }));
+        //TODO
 
         return {
             roomId: newRoom.id,
@@ -279,15 +268,7 @@ export class ChatService {
         await db.delete(room).where(eq(room.id, channelId));
 
         // 5. Publish channel_deleted event to the room topic
-        globalBus.emit(`room:${channelId}`, sse({
-            event: 'channel_deleted',
-            data: { roomId: channelId },
-        }));
-
-        // 6. Recalculate subscriptions for all members so they stop receiving events for this room
-        for (const memberId of memberIds) {
-            await recalculateSubscriptions(memberId);
-        }
+        //TODO
 
         return { success: true };
     }

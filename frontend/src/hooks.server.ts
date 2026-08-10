@@ -1,5 +1,7 @@
 import type { Handle } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { authClient } from '$lib/auth-client';
+import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 type SessionResponse = {
 	session?: App.Locals['session'];
@@ -10,7 +12,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const backendBaseUrl = env.GNAGCHAT_API_URL_INTERNAL ?? 'http://localhost:3000';
 	const sessionEndpoint = `${backendBaseUrl}/betterauth/auth/get-session`;
 
-	// Ensure locals are always defined, even when no valid session exists.
 	event.locals.session = null;
 	event.locals.user = null;
 
@@ -34,6 +35,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	return resolve(event);
 };
+
 
 /*
 /** @type {import('@sveltejs/kit').HandleServerError} */

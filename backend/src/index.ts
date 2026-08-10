@@ -6,8 +6,7 @@ import { closeDb } from './db';
 import { authMiddleware } from './modules/auth';
 import { userModule } from './modules/user';
 import { chatModule } from './modules/chat';
-import { realtimeModule } from './modules/realtime';
-import { voiceModule } from './modules/voice';
+import { livekitModule } from './modules/livekit';
 
 
 export const app = new Elysia()
@@ -16,6 +15,10 @@ export const app = new Elysia()
         seedDatabase()
     })
     .onRequest(({ request }) => {
+        // filter out /api/betterauth/auth/get-session
+        if (request.url.includes('/api/betterauth/auth/get-session')) {
+            return;
+        }
         console.log(`[${new Date().toISOString()}] ${request.method} ${request.url}`);
     })
     .use(cors())
@@ -31,8 +34,7 @@ export const app = new Elysia()
                     .get('/status', () => ({ status: 'online' }))
                     .use(userModule)
                     .use(chatModule)
-                    .use(realtimeModule)
-                    .use(voiceModule)
+                    .use(livekitModule)
             )
     )
     .listen(3000);

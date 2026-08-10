@@ -4,7 +4,7 @@ export const Modules = {
     USER: 'user',
     PERMISSION: 'permission',
     AUTH: 'auth',
-    VOICE: 'voice',
+    LIVEKIT: 'livekit',
 } as const;
 
 export type ModuleId = typeof Modules[keyof typeof Modules]; 
