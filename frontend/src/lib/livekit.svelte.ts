@@ -15,6 +15,8 @@ import {
     type VideoCaptureOptions,
     type AudioCaptureOptions,
     type ScreenShareCaptureOptions,
+    type DataPublishOptions,
+    type RpcInvocationData
 } from 'livekit-client';
 import { SvelteMap } from 'svelte/reactivity';
 import type { Action } from 'svelte/action';
@@ -84,6 +86,7 @@ export class ReactiveParticipant {
     isSpeaking = $state(false);
     connectionQuality = $state(ConnectionQuality.Unknown);
     permissions = $state<Participant['permissions']>();
+    attributes = $state<Record<string, string>>({});
 
     // SvelteMap allows deep reactivity when iterating in getters / derived states
     tracks = new SvelteMap<string, ReactiveTrackPublication>();
@@ -96,6 +99,7 @@ export class ReactiveParticipant {
         this.isSpeaking = participant.isSpeaking;
         this.connectionQuality = participant.connectionQuality;
         this.permissions = participant.permissions;
+        this.attributes = { ...participant.attributes };
 
         for (const [sid, pub] of participant.trackPublications) {
             this.tracks.set(sid, new ReactiveTrackPublication(pub));
@@ -111,6 +115,7 @@ export class ReactiveParticipant {
         this.onConnectionQualityChanged = this.onConnectionQualityChanged.bind(this);
         this.onParticipantMetadataChanged = this.onParticipantMetadataChanged.bind(this);
         this.onParticipantPermissionsChanged = this.onParticipantPermissionsChanged.bind(this);
+        this.onAttributesChanged = this.onAttributesChanged.bind(this);
 
         participant.on(ParticipantEvent.TrackPublished, this.onTrackPublished);
         participant.on(ParticipantEvent.TrackUnpublished, this.onTrackUnpublished);
@@ -122,6 +127,7 @@ export class ReactiveParticipant {
         participant.on(ParticipantEvent.ConnectionQualityChanged, this.onConnectionQualityChanged);
         participant.on(ParticipantEvent.ParticipantMetadataChanged, this.onParticipantMetadataChanged);
         participant.on(ParticipantEvent.ParticipantPermissionsChanged, this.onParticipantPermissionsChanged);
+        participant.on(ParticipantEvent.AttributesChanged, this.onAttributesChanged);
 
         if (participant instanceof LocalParticipant) {
             participant.on(ParticipantEvent.LocalTrackPublished, this.onTrackPublished);
@@ -182,6 +188,10 @@ export class ReactiveParticipant {
         this.permissions = this.participant.permissions;
     }
 
+    private onAttributesChanged(attributes: Record<string, string>) {
+        this.attributes = { ...this.participant.attributes };
+    }
+
     // Reactive getters utilizing SvelteMap traversal
     get cameraTrack() {
         for (const pub of this.tracks.values()) {
@@ -204,6 +214,17 @@ export class ReactiveParticipant {
         return undefined;
     }
 
+    get screenShareAudioTrack() {
+        for (const pub of this.tracks.values()) {
+            if (pub.publication.source === Track.Source.ScreenShareAudio) return pub;
+        }
+        return undefined;
+    }
+    
+    get isLocalParticipant() {
+        return false; // Default to false; overridden in ReactiveLocalParticipant
+    }
+
     destroy() {
         this.participant.off(ParticipantEvent.TrackPublished, this.onTrackPublished);
         this.participant.off(ParticipantEvent.TrackUnpublished, this.onTrackUnpublished);
@@ -215,6 +236,7 @@ export class ReactiveParticipant {
         this.participant.off(ParticipantEvent.ConnectionQualityChanged, this.onConnectionQualityChanged);
         this.participant.off(ParticipantEvent.ParticipantMetadataChanged, this.onParticipantMetadataChanged);
         this.participant.off(ParticipantEvent.ParticipantPermissionsChanged, this.onParticipantPermissionsChanged);
+        this.participant.off(ParticipantEvent.AttributesChanged, this.onAttributesChanged);
 
         if (this.participant instanceof LocalParticipant) {
             this.participant.off(ParticipantEvent.LocalTrackPublished, this.onTrackPublished);
@@ -235,6 +257,13 @@ export class ReactiveLocalParticipant extends ReactiveParticipant {
         super(participant);
     }
 
+    syncState() {
+        this.identity = this.participant.identity;
+        this.name = this.participant.name ?? '';
+        this.metadata = this.participant.metadata ?? '';
+        this.attributes = { ...this.participant.attributes };
+    }
+
     async setCameraEnabled(enabled: boolean, options?: VideoCaptureOptions) {
         return this.participant.setCameraEnabled(enabled, options);
     }
@@ -247,6 +276,27 @@ export class ReactiveLocalParticipant extends ReactiveParticipant {
         return this.participant.setScreenShareEnabled(enabled, options);
     }
 
+    async sendText(text: string, options: { topic: string }) {
+        return this.participant.sendText(text, options);
+    }
+
+    async streamText(options: { topic: string }) {
+        return this.participant.streamText(options);
+    }
+
+    async sendFile(file: File, options: { topic: string, mimeType?: string, onProgress?: (progress: number) => void }) {
+        return this.participant.sendFile(file, options);
+    }
+
+    async streamBytes(options: { topic: string, name: string }) {
+        return this.participant.streamBytes(options);
+    }
+
+    async performRpc(destinationIdentity: string, method: string, payload: string, responseTimeout?: number) {
+        return this.participant.performRpc({ destinationIdentity, method, payload, responseTimeout });
+    }
+    
+    
     get isCameraEnabled(): boolean {
         const track = this.cameraTrack;
         return track ? !track.isMuted : false;
@@ -261,6 +311,15 @@ export class ReactiveLocalParticipant extends ReactiveParticipant {
         const track = this.screenShareTrack;
         return track ? !track.isMuted : false;
     }
+
+    get isScreenShareAudioEnabled(): boolean {
+        const track = this.screenShareAudioTrack;
+        return track ? !track.isMuted : false;
+    }
+
+    get isLocalParticipant(): boolean {
+        return true;
+    }
 }
 
 export class ReactiveRoom {
@@ -271,6 +330,7 @@ export class ReactiveRoom {
     participants = new SvelteMap<string, ReactiveParticipant>();
     localParticipant = $state<ReactiveLocalParticipant | undefined>();
     activeSpeakers = $state<ReactiveParticipant[]>([]);
+    private dataListeners = new Set<(payload: Uint8Array, participant?: ReactiveParticipant, topic?: string) => void>();
 
     constructor(options?: RoomOptions) {
         this.room = new Room(options);
@@ -286,6 +346,7 @@ export class ReactiveRoom {
         this.onParticipantDisconnected = this.onParticipantDisconnected.bind(this);
         this.onActiveSpeakersChanged = this.onActiveSpeakersChanged.bind(this);
         this.onRoomMetadataChanged = this.onRoomMetadataChanged.bind(this);
+        this.onDataReceived = this.onDataReceived.bind(this);
 
         this.room.on(RoomEvent.Connected, this.onConnected);
         this.room.on(RoomEvent.Disconnected, this.onDisconnected);
@@ -294,9 +355,13 @@ export class ReactiveRoom {
         this.room.on(RoomEvent.ParticipantDisconnected, this.onParticipantDisconnected);
         this.room.on(RoomEvent.ActiveSpeakersChanged, this.onActiveSpeakersChanged);
         this.room.on(RoomEvent.RoomMetadataChanged, this.onRoomMetadataChanged);
+        this.room.on(RoomEvent.DataReceived, this.onDataReceived);
     }
 
     private onConnected() {
+        if (this.localParticipant) {
+            this.localParticipant.syncState();
+        }
         this.participants.clear();
         for (const [identity, p] of this.room.remoteParticipants) {
             this.participants.set(identity, new ReactiveParticipant(p));
@@ -343,15 +408,53 @@ export class ReactiveRoom {
         this.metadata = metadata;
     }
 
+    private onDataReceived(payload: Uint8Array, participant?: RemoteParticipant, _kind?: any, topic?: string) {
+        const reactiveParticipant = participant ? this.participants.get(participant.identity) : undefined;
+        for (const listener of this.dataListeners) {
+            listener(payload, reactiveParticipant, topic);
+        }
+    }
+
+    onTextStream(topic: string, handler: (reader: any, participantInfo: any) => void) {
+        this.room.registerTextStreamHandler(topic, handler);
+    }
+
+    onByteStream(topic: string, handler: (reader: any, participantInfo: any) => void) {
+        this.room.registerByteStreamHandler(topic, handler);
+    }
+
+
+    subscribeToData(callback: (payload: Uint8Array, participant?: ReactiveParticipant, topic?: string) => void) {
+        this.dataListeners.add(callback);
+        return () => this.dataListeners.delete(callback);
+    }
+
+    registerRpcMethod(method: string, handler: (data: any) => Promise<string>) {
+        this.room.registerRpcMethod(method, handler);
+    }
+
+    unregisterRpcMethod(method: string) {
+        this.room.unregisterRpcMethod(method);
+    }
+
     // Helper to get an array of remote participants
     get remoteParticipants() {
         return Array.from(this.participants.values());
     }
 
+    get allParticipants() {
+        const participants: ReactiveParticipant[] = [];
+        if (this.localParticipant) {
+            participants.push(this.localParticipant);
+        }
+        participants.push(...this.remoteParticipants);
+        return participants;
+    }
+
     async connect(options?: RoomConnectOptions) {
-        const url = env.PUBLIC_GNAGCHAT_LIVEKIT_URL;
+        const url = env.PUBLIC_GNAGCHAT_LIVEKIT_URL || 'ws://localhost:7880';
         const token = await api.livekit.token
-            .get({ query: { roomName: "my-room", deviceId: "my-device" } })
+            .get({ query: { roomName: "default-room", deviceId: "default-device" } })
             .then((res) => {
                 if (res.status !== 200) {
                     console.error("Failed to get token:", res);
@@ -381,6 +484,9 @@ export class ReactiveRoom {
         this.room.off(RoomEvent.ParticipantDisconnected, this.onParticipantDisconnected);
         this.room.off(RoomEvent.ActiveSpeakersChanged, this.onActiveSpeakersChanged);
         this.room.off(RoomEvent.RoomMetadataChanged, this.onRoomMetadataChanged);
+        this.room.off(RoomEvent.DataReceived, this.onDataReceived);
+
+        this.dataListeners.clear();
 
         this.onDisconnected();
         if (this.localParticipant) {

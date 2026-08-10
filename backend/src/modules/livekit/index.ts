@@ -9,7 +9,7 @@ export const livekitModule = new Elysia({ prefix: '/livekit', name: Modules.LIVE
         try {
             const roomName = query.roomName as string;
             const deviceId = query.deviceId as string;
-            const token = await generateLiveKitToken(user.id, deviceId, user.name, roomName);
+            const token = await generateLiveKitToken(user, deviceId, roomName);
             return { token };
         } catch (e: any) {
             return status('Internal Server Error', e.message || 'Failed to generate LiveKit token');

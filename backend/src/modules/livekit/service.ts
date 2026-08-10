@@ -1,14 +1,16 @@
 import { AccessToken } from 'livekit-server-sdk';
 import { env } from '../../env';
+import { User } from 'better-auth';
 
-export async function generateLiveKitToken(userId: string, deviceId: string, userName: string, room: string): Promise<string> {
+export async function generateLiveKitToken(user: User, deviceId: string, room: string): Promise<string> {
     const at = new AccessToken(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET, {
-        identity: userId+":"+deviceId,
-        name: userName,
+        identity: user.id+":"+deviceId,
+        name: user.name,
         ttl: '10m',
         attributes: {
-            userId: userId,
+            userId: user.id,
             deviceId: deviceId,
+            image: user.image || '',
         }
     });
 
