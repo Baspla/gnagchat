@@ -14,7 +14,8 @@
         try {
             if (room.localParticipant) {
                 room.localParticipant.setMicrophoneEnabled(
-                    !room.localParticipant.isMicrophoneEnabled
+                    !room.localParticipant.isMicrophoneEnabled,
+                    { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
                 );
             }
         } catch (error) {
