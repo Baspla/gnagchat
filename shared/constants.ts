@@ -1,10 +1,10 @@
 export const Modules = {
     CHAT: 'chat',
-    GATEWAY: 'gateway',
     USER: 'user',
     PERMISSION: 'permission',
     AUTH: 'auth',
     LIVEKIT: 'livekit',
+    GATEWAY: 'gateway',
 } as const;
 
 export type ModuleId = typeof Modules[keyof typeof Modules]; 

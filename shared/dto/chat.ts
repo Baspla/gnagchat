@@ -1,5 +1,15 @@
 import { t } from "elysia";
 
+export const DtoRoomSchema = t.Object({
+    id: t.String(),
+});
+
+export const DtoChannelSchema = t.Object({
+    name: t.String(),
+    roomId: t.String(),
+    createdAt: t.Date(),
+});
+
 export const DtoUserSchema = t.Object({
     id: t.String(),
     displayName: t.Optional(t.Nullable(t.String())),
@@ -13,7 +23,6 @@ export const DtoEmojiSchema = t.Object({
 });
 
 export const DtoReactionSchema = t.Object({
-    id: t.String(),
     emoji: DtoEmojiSchema,
     count: t.Number(),
 });
@@ -38,3 +47,5 @@ export type DtoUser = typeof DtoUserSchema.static;
 export type DtoEmoji = typeof DtoEmojiSchema.static;
 export type DtoReaction = typeof DtoReactionSchema.static;
 export type DtoChatMessage = typeof DtoChatMessageSchema.static;
+export type DtoRoom = typeof DtoRoomSchema.static;
+export type DtoChannel = typeof DtoChannelSchema.static;

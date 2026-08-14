@@ -1,11 +1,12 @@
 import { eq, and, gt, desc, or, inArray } from 'drizzle-orm';
-import { sse } from 'elysia';
 import { db } from '../../db';
 import { message, roomReadState, room, channel, directMessage, Message } from './schema';
 import { PermissionService } from '../permission/service';
 import { User, user } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
-import { DtoUser, DtoChatMessage } from '$shared/dto/chat';
+import type { DtoUser, DtoChatMessage, DtoChannel } from '$shared/dto/chat';
+import type { WsMessage } from '$shared/dto/ws-message';
+import { broadcastMessage } from '../gateway/service';
 
 export class ChatService {
 
@@ -61,7 +62,7 @@ export class ChatService {
      * Saves a message after validating room access and send permissions.
      * Scoped as: ...AsUser
      */
-    static async saveMessageAsUser(userId: string, roomId: string, content: string) {
+    static async saveMessageAsUser(userId: string, roomId: string, content: string, nonce?: string) {
         const canView = await this.canViewRoomAsUser(userId, roomId);
         if (!canView) {
             throw new Error('Forbidden: Insufficient permissions to view this room');
@@ -94,18 +95,31 @@ export class ChatService {
             where: eq(user.id, userId)
         });
 
-        const dto = await this.transformMessageToDto(savedMessage);
+        const dto = await this.transformMessageToDto(savedMessage, nonce);
         console.log(`dto for saved message:`, dto);
 
-        // 4. Publish message to room channel
-        //TODO
-
-        console.log(`Message saved and published to room ${roomId}:`, savedMessage);
-
-        // 5. Fetch all users who have access to this room (excluding the sender)
+        // 5. Determine all users to recieve this message
         const roomMembers = await this.getRoomMemberIdsAsSystem(roomId);
 
-        return savedMessage;
+        // 6. Publish message to all recipients' channels
+        const wsMessage: WsMessage = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            payload: {
+                type: "message_create",
+                data: dto,
+            },
+        };
+
+        broadcastMessage(roomMembers.map(id => `user:${id}`), wsMessage).then(() => {
+            console.log(`Message broadcasted to room ${roomId}:`, wsMessage);
+        }).catch(err => {
+            console.error(`Failed to broadcast message to room ${roomId}:`, err);
+        }).then(() => {
+            console.log(`Message saved and published to room ${roomId}:`, savedMessage);
+        });
+
+        return dto;
     }
 
     /**
@@ -117,7 +131,7 @@ export class ChatService {
         await this.canViewRoomAsUser(userId, roomId);
 
         // 2. Fetch history
-        const messages =  await db.query.message.findMany({
+        const messages = await db.query.message.findMany({
             where: eq(message.roomId, roomId),
             orderBy: [desc(message.createdAt)],
             limit,
@@ -209,7 +223,7 @@ export class ChatService {
     /**
      * Creates a new channel room. No permission checks (deferred).
      */
-    static async createChannel(name: string): Promise<{ roomId: string; name: string; createdAt: Date }> {
+    static async createChannel(name: string): Promise<DtoChannel> {
         const validation = validateChannelName(name);
         if (!validation.valid) {
             throw new Error(validation.error);
@@ -276,7 +290,7 @@ export class ChatService {
     /**
      * Returns all channels the user has permission to view, ordered by creation date.
      */
-    static async getAccessibleChannelsAsUser(userId: string): Promise<{ roomId: string; name: string; createdAt: Date }[]> {
+    static async getAccessibleChannelsAsUser(userId: string): Promise<DtoChannel[]> {
         const allChannels = await db
             .select({
                 roomId: channel.roomId,
@@ -299,7 +313,7 @@ export class ChatService {
         return accessible;
     }
 
-    static async transformMessagesToDto(messages: Message[]): Promise<DtoChatMessage[]> {
+    static async transformMessagesToDto(messages: Message[], nonce?: string): Promise<DtoChatMessage[]> {
         const dtos: DtoChatMessage[] = [];
         const authorIds = Array.from(new Set(messages.map(m => m.userId)));
 
@@ -318,7 +332,7 @@ export class ChatService {
                 avatarUrl: null,
             };
 
-            dtos.push(this.transformMessageToDtoWithAuthor(msg, dtoAuthor));
+            dtos.push(this.transformMessageToDtoWithAuthor(msg, dtoAuthor, nonce));
         }
         return dtos;
     }
@@ -331,11 +345,11 @@ export class ChatService {
         };
     }
 
-    static transformMessageToDto(msg: Message): Promise<DtoChatMessage> {
-        return this.transformMessagesToDto([msg]).then(dtos => dtos[0]);
+    static transformMessageToDto(msg: Message, nonce?: string): Promise<DtoChatMessage> {
+        return this.transformMessagesToDto([msg], nonce).then(dtos => dtos[0]);
     }
 
-    static transformMessageToDtoWithAuthor(msg: Message, author: DtoUser): DtoChatMessage {
+    static transformMessageToDtoWithAuthor(msg: Message, author: DtoUser, nonce?: string): DtoChatMessage {
         return {
             id: msg.id,
             roomId: msg.roomId,
@@ -346,7 +360,7 @@ export class ChatService {
             mentions: [], // Populate mentions if applicable
             emojis: [], // Populate emojis if applicable
             reactions: [], // Populate reactions if applicable
-            nonce: '', // Use a nonce if needed
+            nonce: nonce ?? '', // Use a nonce if needed
             pinned: false, // Set pinned status if applicable
             type: 'text',
         };

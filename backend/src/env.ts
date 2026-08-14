@@ -33,4 +33,7 @@ export const env = {
     LIVEKIT_API_KEY: readEnv('LIVEKIT_API_KEY') ?? 'devkey',
     LIVEKIT_API_SECRET: readEnv('LIVEKIT_API_SECRET') ?? 'devsecret',
     LIVEKIT_URL: readEnv('LIVEKIT_URL') ?? 'http://localhost:7880',
+    CENTRIFUGO_URL: readEnv('GNAGCHAT_CENTRIFUGO_URL') ?? 'http://localhost:8000',
+    CENTRIFUGO_SECRET: readEnv('GNAGCHAT_CENTRIFUGO_JWT_SECRET') ?? 'default_secret',
+    CENTRIFUGO_API_KEY: readEnv('GNAGCHAT_CENTRIFUGO_API_KEY') ?? 'default_http_api_key',
 };

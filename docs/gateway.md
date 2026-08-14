@@ -1,0 +1,3 @@
+# Gateway
+
+The gateway, via Centrifugo, is a direct channel from the server to the client. I only use one user:userid channel for each user to keep the client subscription logic simple. Everything gets sent to the client via this channel, no filtering. I don't think i have to worry about the amount of data sent, because the expected usage of this app is not that high. Wenn es zu viele Nachrichten werden, kann man immer noch später es auf mehere Centrifugo Topics aufteilen. Somit bleiben alle $states beim client up-to-date.

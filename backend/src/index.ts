@@ -7,6 +7,7 @@ import { authMiddleware } from './modules/auth';
 import { userModule } from './modules/user';
 import { chatModule } from './modules/chat';
 import { livekitModule } from './modules/livekit';
+import { gatewayModule } from './modules/gateway';
 
 
 export const app = new Elysia()
@@ -16,7 +17,7 @@ export const app = new Elysia()
     })
     .onRequest(({ request }) => {
         // filter out /api/betterauth/auth/get-session
-        if (request.url.includes('/api/betterauth/auth/get-session')) {
+        if (request.url.includes('/api/betterauth/auth/get-session') || request.url.includes('/api/v1/gateway/token')) {
             return;
         }
         console.log(`[${new Date().toISOString()}] ${request.method} ${request.url}`);
@@ -35,6 +36,7 @@ export const app = new Elysia()
                     .use(userModule)
                     .use(chatModule)
                     .use(livekitModule)
+                    .use(gatewayModule)
             )
     )
     .listen(3000);
