@@ -12,6 +12,7 @@ import type {
     MessageReactionRemoveEmojiPayload,
 } from "$shared/dto";
 import { SvelteMap, SvelteSet } from "svelte/reactivity";
+import { authClient } from "$lib/auth-client";
 
 // ── Reactive state ──────────────────────────────────────────────────────
 
@@ -27,6 +28,10 @@ function ensureRoom(roomId: string): SvelteMap<string, DtoChatMessage> {
     }
     return messages;
 }
+
+
+const session = authClient.useSession();
+const user = $derived(session.get().data?.user ?? null);
 
 /**
  * Insert or replace a message in a room, deduplicating by `id` and `nonce`.
@@ -45,7 +50,8 @@ function upsertMessage(roomId: string, incoming: DtoChatMessage): void {
     // Replace by nonce match (optimistic local message replaced by server response or WS echo)
     if (incoming.nonce) {
         const existingByNonce = messages.get(incoming.nonce);
-        if (existingByNonce) { messages.delete(incoming.nonce);
+        if (existingByNonce) {
+            messages.delete(incoming.nonce);
             messages.set(incoming.id, incoming);
             return;
         }
@@ -105,12 +111,20 @@ export const chatStore = {
      * The stub is reconciled either by the REST response or by the WS `message_create` event.
      */
     async sendMessage(roomId: string, content: string): Promise<DtoChatMessage | null> {
+        if (content.trim() === "") {
+            console.warn("[ChatStore] Attempted to send empty message to room", roomId);
+            return null;
+        }
         const nonce = crypto.randomUUID();
 
         const optimistic: DtoChatMessage = {
             id: "",
             roomId,
-            author: { id: "", displayName: null, avatarUrl: null },
+            author: {
+                id: "",
+                displayName: user?.name || "Unknown",
+                avatarUrl: user?.image || "",
+            },
             content,
             createdAt: new Date(),
             editedAt: null,

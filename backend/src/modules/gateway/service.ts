@@ -1,4 +1,4 @@
-import { User } from 'better-auth';
+import type { User } from 'better-auth';
 import * as jose from 'jose'
 import { env } from "../../env";
 import type { WsMessage } from '$shared/dto/ws-message';

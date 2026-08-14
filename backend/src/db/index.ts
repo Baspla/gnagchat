@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import * as schema from './schema';
+//ts-ignore-next-line
 import { Database } from 'bun:sqlite';
 
 const client = new Database('data/sqlite.db');

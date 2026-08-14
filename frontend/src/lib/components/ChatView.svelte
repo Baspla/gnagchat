@@ -24,13 +24,16 @@
 
     function sendMessage() {
         if (!roomId) return;
-        chatStore.sendMessage(roomId, inputValue);
-        inputValue = "";
+        chatStore.sendMessage(roomId, inputValue).then((message) => {
+            if (message) {
+                inputValue = "";
+            }
+        });
     }
 </script>
 
 <div class="m-4 max-h-full w-full flex flex-col">
-    <div class="flex flex-col gap-2 grow overflow-y-auto">
+    <div class="flex flex-col gap-2 grow overflow-y-auto overflow-x-hidden">
         <div class="flex flex-col gap-1">
             {#each messages as message (message.id)}
                 <div class="flex flex-row gap-2 items-top">
@@ -56,12 +59,13 @@
                             </div>
                         </div>
                     </div>
-                    <div>{message.content}</div>
+                    <div class="break-all wrap-break-word hyphens-auto flex-1 min-w-0 pr-3"
+                    >{message.content}</div>
                 </div>
             {/each}
         </div>
     </div>
-    <div class="flex gap-2 mt-2 w-full">
+    <div class="flex gap-2 mt-2">
         <input
             type="text"
             placeholder="Shitposte..."

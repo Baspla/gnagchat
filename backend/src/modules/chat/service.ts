@@ -1,8 +1,10 @@
 import { eq, and, gt, desc, or, inArray } from 'drizzle-orm';
 import { db } from '../../db';
-import { message, roomReadState, room, channel, directMessage, Message } from './schema';
+import { message, roomReadState, room, channel, directMessage} from './schema';
+import type { Message } from './schema';
 import { PermissionService } from '../permission/service';
-import { User, user } from '../user/schema';
+import { user } from '../user/schema';
+import type { User } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
 import type { DtoUser, DtoChatMessage, DtoChannel } from '$shared/dto/chat';
 import type { WsMessage } from '$shared/dto/ws-message';
