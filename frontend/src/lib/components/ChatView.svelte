@@ -1,6 +1,5 @@
 <script lang="ts">
     import { chatStore } from "$lib/stores/chat-store.svelte";
-    import { onMount } from "svelte";
 
     let {
         roomId,
@@ -69,11 +68,11 @@
         <input
             type="text"
             placeholder="Shitposte..."
-            class="w-full rounded p-2"
+            class="w-full rounded p-2 input"
             bind:value={inputValue}
         />
         <button
-            class="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
+            class="btn preset-filled p-2 rounded"
             onclick={sendMessage}
         >
             Senden

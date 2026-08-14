@@ -3,6 +3,7 @@
     import { ConnectionState } from "livekit-client";
     import { getVoiceRoom } from "$lib/voice/voice-context.svelte";
     import type { LayoutData } from "../../../routes/(app)/$types";
+    import Lightswitch from "../Lightswitch.svelte";
 
     const manager = getVoiceRoom();
 
@@ -17,12 +18,24 @@
     async function leaveRoom() {
         await manager.leaveRoom();
     }
+
+    async function toggleMute() {
+        manager.toggleMute();
+    }
+
+    async function toggleCamera() {
+        manager.toggleCamera();
+    }
+
+    async function toggleScreenShare() {
+        manager.toggleScreenShare();
+    }
 </script>
 
 <!-- Voice / Status Row -->
 
 <footer
-    class="border-t border-black bg-white flex flex-col justify-center p-3 gap-1"
+    class=" flex flex-col justify-center p-3 gap-1"
 >
     <div class="flex items-center justify-between">
         {#if manager.state === ConnectionState.Disconnected}
@@ -41,9 +54,13 @@
                 </span>
             </div>
             <div class="flex items-center gap-2">
-                <button class="hover:shadow-md" title="Share Screen">🖥️</button>
-                <button class="hover:shadow-md" title="Camera">📷</button>
-                <button class="hover:shadow-md" title="Leave Room" onclick={leaveRoom}>
+                <button class="hover:shadow-md rounded-md" title="Share Screen" onclick={toggleScreenShare}>
+                    🖥️
+                </button>
+                <button class="hover:shadow-md rounded-md" title="Camera" onclick={toggleCamera}>
+                    📷
+                </button>
+                <button class="hover:shadow-md rounded-md" title="Leave Room" onclick={leaveRoom}>
                     ❌
                 </button>
             </div>
@@ -68,11 +85,16 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <button class="hover:shadow-md" title="Mute">🎙️</button>
-            <button class="hover:shadow-md" title="Deafen">🎧</button>
-            <button class="hover:shadow-md" title="Settings">
+            <button class="hover:shadow-md rounded-md" title="Mute" onclick={toggleMute} class:bg-red-200={!manager.localParticipant?.isMicrophoneEnabled}>
+                🎙️
+            </button>
+            <button class="hover:shadow-md rounded-md" title="Deafen">
+                🎧
+            </button>
+            <button class="hover:shadow-md rounded-md" title="Settings" onclick={logout}>
                 ⚙️
             </button>
+            <Lightswitch />
         </div>
     </div>
 </footer>

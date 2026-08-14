@@ -26,44 +26,44 @@
     {#if manager.state === ConnectionState.Disconnected}
         <button
             onclick={() => manager.joinRoom("default-room")}
-            class="bg-indigo-500 hover:bg-indigo-700 text-white p-2 rounded"
+            class="btn bg-indigo-500 hover:bg-indigo-700 text-white p-2 rounded"
         >
             Connect
         </button>
     {:else if manager.state === ConnectionState.Connecting}
-        <button class="bg-gray-500 text-white p-2 rounded">
+        <button class="btn bg-gray-500 text-white p-2 rounded">
             Connecting...
         </button>
     {:else if manager.state === ConnectionState.Connected}
         <button
             onclick={() => manager.leaveRoom()}
-            class="bg-red-500 hover:bg-red-700 text-white p-2 rounded"
+            class="btn bg-red-500 hover:bg-red-700 text-white p-2 rounded"
         >
             Disconnect
         </button>
     {:else if manager.state === ConnectionState.Reconnecting}
-        <button class="bg-yellow-500 text-white p-2 rounded">
+        <button class="btn bg-yellow-500 text-white p-2 rounded">
             Reconnecting...
         </button>
     {:else if manager.state === ConnectionState.SignalReconnecting}
-        <button class="bg-yellow-500 text-white p-2 rounded">
+        <button class="btn bg-yellow-500 text-white p-2 rounded">
             Signal Reconnecting...
         </button>
     {:else}
-        <button class="bg-gray-500 text-white p-2 rounded">
+        <button class="btn bg-gray-500 text-white p-2 rounded">
             Unknown State
         </button>
     {/if}
     {#if manager.state === ConnectionState.Connected}
         <button
             onclick={() => manager.toggleMute()}
-            class="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
+            class="btn preset-filled  p-2 rounded"
         >
             {manager.localParticipant?.isMicrophoneEnabled ? "Mute" : "Unmute"}
         </button>
         <button
             onclick={() => manager.toggleCamera()}
-            class="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
+            class="btn preset-filled  p-2 rounded"
         >
             {manager.localParticipant?.isCameraEnabled
                 ? "Stop Camera"
@@ -71,7 +71,7 @@
         </button>
         <button
             onclick={() => manager.toggleScreenShare()}
-            class="bg-blue-500 hover:bg-blue-700 text-white p-2 rounded"
+            class="btn preset-filled  p-2 rounded"
         >
             {manager.localParticipant?.isScreenShareEnabled
                 ? "Stop Screen Share"
@@ -83,7 +83,7 @@
         <p>Room Name: {manager.currentRoomName}</p>
         <p>Alle im Call:</p>
         <div
-            class="flex flex-wrap border border-gray-200 rounded p-2 bg-gray-50"
+            class="flex flex-wrap border rounded p-2 "
         >
             {#each manager.allParticipants as participant (participant.identity)}
                 <div class="border p-2 m-2">

@@ -13,14 +13,13 @@
 </script>
 
 <div
-    class="flex h-screen w-screen overflow-hidden bg-white text-neutral-900 font-sans"
+    class="flex h-screen w-screen overflow-hidden bg-surface-200-800 text-surface-contrast-200-800 font-sans"
 >
-    <!-- LEFT PANEL CONTAINER (Icons + Dynamic Sidebar + Bottom Controls) -->
-    <div class="flex flex-col w-78 shrink-0 border-r">
+    <div class="flex flex-col w-78 shrink-0">
         <div class="flex flex-1 overflow-hidden">
             <IconSidebar />
 
-            <nav class="flex-1 overflow-y-auto">
+            <nav class="flex-1 overflow-y-auto bg-surface-100-900">
                 {#if sidebar}
                     {@render sidebar()}
                 {/if}
@@ -30,8 +29,7 @@
         <UserControlPanel />
     </div>
 
-    <!-- MAIN VIEWPORT (Chat Area + Online Members) -->
-    <main class="flex flex-1 h-full overflow-hidden">
+    <main class="flex flex-1 h-full overflow-hidden bg-surface-50-950">
         {#if children}
             {@render children()}
         {/if}

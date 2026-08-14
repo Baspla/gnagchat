@@ -4,7 +4,7 @@
 </script>
 
 <aside
-    class="shrink-0 border-r flex flex-col items-center p-3 gap-3 overflow-y-auto"
+    class="shrink-0 flex flex-col items-center p-3 gap-3 overflow-y-auto"
 >
     <IconSidebarElement href="/">🏠</IconSidebarElement>
 
