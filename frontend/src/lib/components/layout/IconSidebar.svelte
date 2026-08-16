@@ -12,9 +12,5 @@
 
     <IconSidebarElement href="/files" disabled>📁</IconSidebarElement>
 
-    <p class="text-sm font-medium border-t w-full text-center">Test</p>
-
     <IconSidebarElement href="/calldebug">☎️</IconSidebarElement>
-
-    <IconSidebarElement href="/logger">🧩</IconSidebarElement>
 </aside>

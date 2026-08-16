@@ -19,6 +19,12 @@
         api.chat.channels.get().then((ch) => {
             if (ch.response.ok && ch.data) {
                 channels = ch.data;
+                // Seed voice state store with initial data so it's available immediately
+                for (const channel of ch.data) {
+                    if (channel.voiceState) {
+                        voiceStateStore.seed(channel.voiceState);
+                    }
+                }
                 if (channels.length > 0 && !selectedChannel) {
                     selectedChannel = channels[0];
                 }
@@ -31,8 +37,7 @@
 <div class="flex flex-col gap-2 p-2">
     <h2 class="text-lg font-bold">Channels</h2>
     {#each channels as channel (channel.roomId)}
-        {@const voiceState =
-            channel.voiceState ?? voiceStateStore.get(channel.roomId)}
+        {@const voiceState = voiceStateStore.get(channel.roomId)}
         <div class="flex items-center gap-2">
             <button
                 class="flex-1 p-2 rounded cursor-pointer text-left"

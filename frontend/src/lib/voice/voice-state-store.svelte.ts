@@ -39,6 +39,16 @@ class VoiceStateStore {
     }
 
     /**
+     * Seed the store with initial voice room data from the API response.
+     * This ensures the store has data immediately on first render
+     * before any live events arrive.
+     */
+    seed(room: DtoVoiceRoom) {
+        this.#rooms.set(room.roomId, room);
+        this.#rooms = new Map(this.#rooms);
+    }
+
+    /**
      * Get voice state for a specific room.
      */
     get(roomId: string): DtoVoiceRoom | undefined {
