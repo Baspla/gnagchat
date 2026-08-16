@@ -9,8 +9,13 @@ export class VoiceRoomManager {
     }));
 
     currentRoomName = $state<string>("");
+    currentRoomDisplayName = $state<string>("");
 
     // Derived state for convenience
+    get roomDisplayName() {
+        return this.currentRoomDisplayName || this.currentRoomName;
+    }
+
     get state() {
         return this.room.state;
     }
@@ -39,7 +44,7 @@ export class VoiceRoomManager {
         return this.room.state === ConnectionState.Connecting;
     }
 
-    async joinRoom(roomName: string) {
+    async joinRoom(roomName: string, displayName?: string) {
         if (this.currentRoomName === roomName && this.isConnected) {
             return; // Already in this room
         }
@@ -50,6 +55,7 @@ export class VoiceRoomManager {
         }
 
         this.currentRoomName = roomName;
+        this.currentRoomDisplayName = displayName ?? roomName;
         await this.room.prepareConnection(roomName);
         await this.room.connect(roomName);
         await this.room.localParticipant?.setMicrophoneEnabled(true);
@@ -60,6 +66,7 @@ export class VoiceRoomManager {
             await this.room.disconnect();
         }
         this.currentRoomName = "";
+        this.currentRoomDisplayName = "";
     }
 
     async switchRoom(roomName: string) {

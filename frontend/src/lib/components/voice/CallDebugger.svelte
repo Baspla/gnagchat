@@ -80,7 +80,7 @@
     {/if}
     <p>Connection Status: {manager.state}</p>
     {#if manager.state === ConnectionState.Connected}
-        <p>Room Name: {manager.currentRoomName}</p>
+        <p>Room Name: {manager.roomDisplayName}</p>
         <p>Alle im Call:</p>
         <div
             class="flex flex-wrap border rounded p-2 "
@@ -105,7 +105,7 @@
                     <p>
                         Metadata: {participant.metadata}
                     </p>
-                    <p>Room: {manager.currentRoomName}</p>
+                    <p>Room: {manager.roomDisplayName}</p>
                     <p>Connection Quality: {participant.connectionQuality}</p>
                     <p>Is Speaking: {participant.isSpeaking ? "Yes" : "No"}</p>
                     <p>Mic: {participant.microphoneTrack ? "Yes" : "No"}</p>

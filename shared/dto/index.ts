@@ -1,5 +1,9 @@
 export { DtoChatMessageSchema, DtoUserSchema, DtoEmojiSchema, DtoReactionSchema } from "./chat";
 export type { DtoChatMessage, DtoUser, DtoEmoji, DtoReaction } from "./chat";
+export { DtoChannelSchema, DtoRoomSchema } from "./chat";
+export type { DtoChannel, DtoRoom } from "./chat";
+export { DtoVoiceRoomSchema, DtoVoiceParticipantSchema, DtoVoiceTrackSchema } from "./voice-room";
+export type { DtoVoiceRoom, DtoVoiceParticipant, DtoVoiceTrack } from "./voice-room";
 export {
     WsMessageSchema, WsEventSchema,
     ChannelCreatePayloadSchema, ChannelUpdatePayloadSchema, ChannelDeletePayloadSchema,
@@ -10,6 +14,7 @@ export {
     MessageDeleteBulkPayloadSchema, MessageReactionAddPayloadSchema, MessageReactionRemovePayloadSchema,
     MessageReactionRemoveAllPayloadSchema, MessageReactionRemoveEmojiPayloadSchema,
     PresenceUpdatePayloadSchema, TypingStartPayloadSchema, VoiceStateUpdatePayloadSchema,
+    VoiceRoomUpdatePayloadSchema,
     SystemMessagePayloadSchema, ErrorMessagePayloadSchema,
 } from "./ws-message";
 export type {
@@ -22,5 +27,6 @@ export type {
     MessageDeleteBulkPayload, MessageReactionAddPayload, MessageReactionRemovePayload,
     MessageReactionRemoveAllPayload, MessageReactionRemoveEmojiPayload,
     PresenceUpdatePayload, TypingStartPayload, VoiceStateUpdatePayload,
+    VoiceRoomUpdatePayload,
     SystemMessagePayload, ErrorMessagePayload,
 } from "./ws-message";

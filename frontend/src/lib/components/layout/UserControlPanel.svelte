@@ -42,13 +42,16 @@
             <div></div>
         {:else if manager.state === ConnectionState.Connecting}
             <p class="text-gray-500 text-center">Connecting...</p>
+            <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
+                ❌
+            </button>
         {:else if manager.state === ConnectionState.Connected}
             <div class="flex items-center gap-2">
                 <div
                     class="w-2 h-2 rounded-full bg-green-500"
                     title="Connected"
                 ></div>
-                <span class="truncate">{manager.currentRoomName}</span>
+                <span class="truncate">{manager.roomDisplayName}</span>
                 <span class="text-gray-400 text-xs">
                     ({manager.allParticipants.length})
                 </span>
@@ -66,8 +69,14 @@
             </div>
         {:else if manager.state === ConnectionState.Reconnecting}
             <p class="text-yellow-500 text-center">Reconnecting...</p>
+            <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
+                ❌
+            </button>
         {:else}
             <p class="text-gray-500 text-center">{manager.state}</p>
+            <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
+                ❌
+            </button>
         {/if}
     </div>
 

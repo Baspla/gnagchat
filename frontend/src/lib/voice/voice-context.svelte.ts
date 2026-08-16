@@ -1,6 +1,7 @@
 import { getContext, setContext } from "svelte";
 import type { VoiceRoomManager } from "./voice-room-manager.svelte";
 
+// This symbol is used as a unique key for the Svelte context to store the VoiceRoomManager instance.
 const VOICE_ROOM_KEY = Symbol("voice-room");
 
 export function setVoiceRoom(manager: VoiceRoomManager): void {

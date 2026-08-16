@@ -1,5 +1,6 @@
 import { t } from "elysia";
 import { DtoChatMessageSchema, DtoEmojiSchema } from "./chat";
+import { DtoVoiceRoomSchema } from "./voice-room";
 
 // ── Per-event payload schemas ──────────────────────────────────────────
 
@@ -145,6 +146,9 @@ export const ErrorMessagePayloadSchema = t.Object({
 });
 export type ErrorMessagePayload = typeof ErrorMessagePayloadSchema.static;
 
+export const VoiceRoomUpdatePayloadSchema = DtoVoiceRoomSchema;
+export type VoiceRoomUpdatePayload = typeof VoiceRoomUpdatePayloadSchema.static;
+
 // ── Discriminated union of all event variants ──────────────────────────
 
 export const WsEventSchema = t.Union([
@@ -171,6 +175,7 @@ export const WsEventSchema = t.Union([
     t.Object({ type: t.Literal("presence_update"), data: PresenceUpdatePayloadSchema }),
     t.Object({ type: t.Literal("typing_start"), data: TypingStartPayloadSchema }),
     t.Object({ type: t.Literal("voice_state_update"), data: VoiceStateUpdatePayloadSchema }),
+    t.Object({ type: t.Literal("voice_room_update"), data: VoiceRoomUpdatePayloadSchema }),
     t.Object({ type: t.Literal("system"), data: SystemMessagePayloadSchema }),
     t.Object({ type: t.Literal("error"), data: ErrorMessagePayloadSchema }),
 ]);

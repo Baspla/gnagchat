@@ -1,4 +1,5 @@
 import { t } from "elysia";
+import { DtoVoiceRoomSchema } from "./voice-room";
 
 export const DtoRoomSchema = t.Object({
     id: t.String(),
@@ -8,6 +9,7 @@ export const DtoChannelSchema = t.Object({
     name: t.String(),
     roomId: t.String(),
     createdAt: t.Date(),
+    voiceState: t.Optional(t.Nullable(DtoVoiceRoomSchema)),
 });
 
 export const DtoUserSchema = t.Object({

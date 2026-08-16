@@ -19,7 +19,7 @@
                 class="w-2 h-2 rounded-full bg-green-500"
                 title="Connected"
             ></div>
-            <span class="font-medium truncate">{manager.currentRoomName}</span>
+            <span class="font-medium truncate">{manager.roomDisplayName}</span>
             <span class="text-gray-400 text-xs">
                 ({manager.allParticipants.length})
             </span>

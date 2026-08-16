@@ -8,7 +8,9 @@ import type { User } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
 import type { DtoUser, DtoChatMessage, DtoChannel } from '$shared/dto/chat';
 import type { WsMessage } from '$shared/dto/ws-message';
+import type { DtoVoiceRoom } from '$shared/dto/voice-room';
 import { broadcastMessage } from '../gateway/service';
+import { voiceStateStore } from '../livekit/voice-state';
 
 export class ChatService {
 
@@ -312,7 +314,15 @@ export class ChatService {
             }
         }
 
-        return accessible;
+        // Attach voice state from in-memory store
+        const roomIds = accessible.map((ch) => ch.roomId);
+        const voiceStates = voiceStateStore.getForRoomIds(roomIds);
+        const voiceStateMap = new Map(voiceStates.map((vs) => [vs.roomId, vs.state]));
+
+        return accessible.map((ch) => ({
+            ...ch,
+            voiceState: voiceStateMap.get(ch.roomId) ?? null,
+        }));
     }
 
     static async transformMessagesToDto(messages: Message[], nonce?: string): Promise<DtoChatMessage[]> {

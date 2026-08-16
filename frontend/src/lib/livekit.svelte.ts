@@ -411,6 +411,7 @@ export class ReactiveRoom {
 
     private onDisconnected() {
         this.state = ConnectionState.Disconnected;
+        this.token = '';
         for (const p of this.participants.values()) {
             p.destroy();
         }
@@ -640,9 +641,7 @@ export class ReactiveRoom {
 
     async prepareConnection(roomName: string) {
         const deviceId = getDeviceId();
-        if (!this.token) {
-            this.token = await this.getLiveKitToken(roomName, deviceId);
-        }
+        this.token = await this.getLiveKitToken(roomName, deviceId);
         if (this.state === ConnectionState.Disconnected) {
             this.room.prepareConnection(this.url, this.token);
         }
@@ -661,6 +660,7 @@ export class ReactiveRoom {
 
     async disconnect(stopTracks?: boolean) {
         await this.room.disconnect(stopTracks);
+        this.token = '';
     }
 
     destroy() {
