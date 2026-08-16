@@ -100,6 +100,8 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
         const event = await receiver.receive(body, authHeader);
         const { event: eventName } = event;
 
+        console.log(`Received LiveKit webhook event: ${eventName} for room: ${event.room?.name}`);
+
         // Extract room name (which is our chat room ID)
         const roomName = event.room?.name;
         if (!roomName) {

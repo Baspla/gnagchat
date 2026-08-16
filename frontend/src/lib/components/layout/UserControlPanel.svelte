@@ -1,5 +1,6 @@
 <script lang="ts">
     import { authClient } from "$lib/auth-client";
+    import { attachTrack } from "$lib/livekit.svelte";
     import { ConnectionState } from "livekit-client";
     import { getVoiceRoom } from "$lib/voice/voice-context.svelte";
     import type { LayoutData } from "../../../routes/(app)/$types";
@@ -107,3 +108,15 @@
         </div>
     </div>
 </footer>
+
+<!-- Hidden audio elements for remote participants -->
+{#if manager.state === ConnectionState.Connected}
+    {#each manager.allParticipants as participant (participant.identity)}
+        {#if !participant.isLocalParticipant}
+            <audio
+                use:attachTrack={participant.microphoneTrack?.track}
+                autoplay
+            ></audio>
+        {/if}
+    {/each}
+{/if}
