@@ -1,7 +1,5 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { authClient } from '$lib/auth-client';
-import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 type SessionResponse = {
 	session?: App.Locals['session'];
@@ -37,7 +35,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 };
 
 /** Global server-side error handler — logs to stdout */
-export const handleError: HandleServerError = ({ error, event }) => {
+export const handleError: HandleServerError = ({ error, event, status }) => {
+	// dont log 4xx errors, they are expected to happen sometimes
+	if (status >= 400 && status < 500) {
+		return {
+			message: 'An unexpected 4xx error occurred',
+		};
+	}
 	console.error(`[server-error] ${event.request.method} ${event.url.pathname}`, error);
 	return {
 		message: 'An unexpected error occurred',

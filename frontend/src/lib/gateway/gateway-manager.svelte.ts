@@ -14,6 +14,10 @@ type WsEventHandler = (data: WsEvent["data"], message: WsMessage) => void;
 
 export class GatewayManager {
     private getToken = async () => {
+        // only call this from the browser, not from server-side rendering
+        if (typeof window === "undefined") {
+            return "";
+        }
         const token = await api.gateway.token
             .get({ query: { deviceId: "default" } })
             .then((res) => {

@@ -12,7 +12,7 @@
         children?: Snippet;
     } = $props();
 
-    const fallbackLetter = href.charAt(1).toUpperCase();
+    const fallbackLetter = $derived(href.charAt(1).toUpperCase());
 
     
     const isActive = (href: string) => {
