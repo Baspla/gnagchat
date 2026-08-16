@@ -4,6 +4,13 @@ import { createLogger } from "$lib/logger";
 
 const logger = createLogger("voice-room-manager");
 
+export enum VoiceState {
+    Unmuted = "unmuted",
+    Muted = "muted",
+    Deafened = "deafened",
+    DeafenedAndMuted = "deafenedandmuted",
+}
+
 export class VoiceRoomManager {
     room = $state<ReactiveRoom>(new ReactiveRoom({
         adaptiveStream: true,
@@ -13,6 +20,8 @@ export class VoiceRoomManager {
 
     currentRoomName = $state<string>("");
     currentRoomDisplayName = $state<string>("");
+
+    voiceState = $state<VoiceState>(VoiceState.Unmuted);
 
     // Derived state for convenience
     get roomDisplayName() {
@@ -47,6 +56,15 @@ export class VoiceRoomManager {
         return this.room.state === ConnectionState.Connecting;
     }
 
+    get canSpeak(): boolean {
+        return this.voiceState === VoiceState.Unmuted;
+    }
+
+    get canHear(): boolean {
+        return this.voiceState === VoiceState.Unmuted
+            || this.voiceState === VoiceState.Muted;
+    }
+
     async joinRoom(roomName: string, displayName?: string) {
         if (this.currentRoomName === roomName && this.isConnected) {
             return; // Already in this room
@@ -61,7 +79,7 @@ export class VoiceRoomManager {
         this.currentRoomDisplayName = displayName ?? roomName;
         await this.room.prepareConnection(roomName);
         await this.room.connect(roomName);
-        await this.room.localParticipant?.setMicrophoneEnabled(true);
+        await this.syncAudioState();
     }
 
     async leaveRoom() {
@@ -77,10 +95,46 @@ export class VoiceRoomManager {
     }
 
     async toggleMute() {
+        switch (this.voiceState) {
+            case VoiceState.Unmuted:
+                this.voiceState = VoiceState.Muted;
+                break;
+            case VoiceState.Muted:
+                this.voiceState = VoiceState.Unmuted;
+                break;
+            case VoiceState.Deafened:
+                this.voiceState = VoiceState.Unmuted;
+                break;
+            case VoiceState.DeafenedAndMuted:
+                this.voiceState = VoiceState.Unmuted;
+                break;
+        }
+        await this.syncAudioState();
+    }
+
+    async toggleDeafen() {
+        switch (this.voiceState) {
+            case VoiceState.Unmuted:
+                this.voiceState = VoiceState.Deafened;
+                break;
+            case VoiceState.Muted:
+                this.voiceState = VoiceState.DeafenedAndMuted;
+                break;
+            case VoiceState.Deafened:
+                this.voiceState = VoiceState.Unmuted;
+                break;
+            case VoiceState.DeafenedAndMuted:
+                this.voiceState = VoiceState.Muted;
+                break;
+        }
+        await this.syncAudioState();
+    }
+
+    private async syncAudioState() {
         try {
             if (this.room.localParticipant) {
                 await this.room.localParticipant.setMicrophoneEnabled(
-                    !this.room.localParticipant.isMicrophoneEnabled,
+                    this.canSpeak,
                     {
                         echoCancellation: true,
                         noiseSuppression: true,
@@ -89,7 +143,7 @@ export class VoiceRoomManager {
                 );
             }
         } catch (error) {
-            logger.error("error toggling mute", { error: String(error) });
+            logger.error("error syncing audio state", { error: String(error) });
         }
     }
 

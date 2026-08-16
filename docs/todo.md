@@ -19,6 +19,7 @@
 - [ ] Soundboard
 - [ ] Aktions Sounds (z.B. Join/Leave, Message, etc.)
 - [ ] Custom Rechtsklick-Menüs für alle Elemente
+- [ ] Mobile Support (Responsive Design)
 
 ## Refactors
 - [ ] Message rendering / Chat View in einzelne Komponenten aufteilen

@@ -28,13 +28,13 @@
             <button
                 onclick={() => manager.toggleMute()}
                 class="px-2 py-1 rounded text-xs"
-                class:bg-red-500={!manager.localParticipant?.isMicrophoneEnabled}
-                class:bg-blue-500={manager.localParticipant?.isMicrophoneEnabled}
-                class:hover:bg-red-700={!manager.localParticipant?.isMicrophoneEnabled}
-                class:hover:bg-blue-700={manager.localParticipant?.isMicrophoneEnabled}
+                class:bg-red-500={!manager.canSpeak}
+                class:bg-blue-500={manager.canSpeak}
+                class:hover:bg-red-700={!manager.canSpeak}
+                class:hover:bg-blue-700={manager.canSpeak}
                 class:text-white={true}
             >
-                {manager.localParticipant?.isMicrophoneEnabled ? "Mute" : "Unmute"}
+                {manager.canSpeak ? "Mute" : "Unmute"}
             </button>
             <button
                 onclick={() => manager.leaveRoom()}

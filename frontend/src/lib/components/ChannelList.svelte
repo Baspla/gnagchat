@@ -4,6 +4,9 @@
     import { voiceStateStore } from "$lib/voice/voice-state-store.svelte";
     import type { DtoChannel } from "$shared/dto/chat";
     import { onMount } from "svelte";
+    import Volume2 from "@lucide/svelte/icons/volume-2";
+    import PhoneCall from "@lucide/svelte/icons/phone-call";
+    import PhoneOff from "@lucide/svelte/icons/phone-off";
 
     let {
         selectedChannel = $bindable(null as DtoChannel | null),
@@ -42,7 +45,7 @@
             <button
                 class="flex-1 p-2 rounded cursor-pointer text-left"
                 onclick={() => (selectedChannel = channel)}
-                class:bg-primary-500={selectedChannel?.roomId ===
+                class:bg-surface-300-700={selectedChannel?.roomId ===
                     channel.roomId}
             >
                 <div class="flex items-center gap-2">
@@ -52,7 +55,7 @@
                             class="inline-flex items-center gap-1 text-green-400 text-xs"
                             title="Voice active"
                         >
-                            🔊
+                            <Volume2 class="w-3 h-3" />
                             <span class="text-gray-400"
                                 >{voiceState.userCount}</span
                             >
@@ -88,16 +91,16 @@
                 {/if}
             </button>
             {#if manager.isConnected && manager.currentRoomName === channel.roomId}
-                <span class="p-2 text-green-400" title="You are in this call"
-                    >🔊</span
-                >
+                <button class="btn preset-filled-error-500 p-2 rounded" title="Disconnect from call" onclick={() => manager.leaveRoom()}>
+                    <PhoneOff class="w-4 h-4" />
+                </button>
             {:else}
                 <button
                     class="btn preset-filled p-2 rounded"
                     onclick={() =>
                         manager.joinRoom(channel.roomId, channel.name)}
                 >
-                    📞
+                    <PhoneCall class="w-4 h-4" />
                 </button>
             {/if}
         </div>

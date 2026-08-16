@@ -13,6 +13,7 @@
   "dependencies": {
     "@elysiajs/eden": "^1.4.9",
     "@gnagchat/shared": "workspace:*",
+    "@lucide/svelte": "^1.31.0",
     "better-auth": "^1.6.23",
     "centrifuge": "^5.7.0",
     "livekit-client": "^2.21.0"

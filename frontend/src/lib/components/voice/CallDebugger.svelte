@@ -59,7 +59,7 @@
             onclick={() => manager.toggleMute()}
             class="btn preset-filled  p-2 rounded"
         >
-            {manager.localParticipant?.isMicrophoneEnabled ? "Mute" : "Unmute"}
+            {manager.canSpeak ? "Mute" : "Unmute"}
         </button>
         <button
             onclick={() => manager.toggleCamera()}
@@ -124,6 +124,7 @@
                         <audio
                             use:attachTrack={participant.microphoneTrack?.track}
                             autoplay
+                            muted={!manager.canHear}
                         ></audio>
                     {/if}
                     {#if participant.cameraTrack}
@@ -167,7 +168,7 @@
                                 <audio
                                     use:attachTrack={participant
                                         .screenShareAudioTrack?.track}
-                                    muted={participant.isLocalParticipant}
+                                    muted={participant.isLocalParticipant || !manager.canHear}
                                     autoplay
                                 ></audio>
                             {/if}

@@ -7,6 +7,16 @@
     import { page } from "$app/state";
     import Lightswitch from "../Lightswitch.svelte";
     import { createLogger } from "$lib/logger";
+    import Link from "@lucide/svelte/icons/link";
+    import Monitor from "@lucide/svelte/icons/monitor";
+    import Camera from "@lucide/svelte/icons/camera";
+    import Mic from "@lucide/svelte/icons/mic";
+    import MicOff from "@lucide/svelte/icons/mic-off";
+    import Headphones from "@lucide/svelte/icons/headphones";
+    import HeadphoneOff from "@lucide/svelte/icons/headphone-off";
+    import Settings from "@lucide/svelte/icons/settings";
+    import PhoneOff from "@lucide/svelte/icons/phone-off";
+    import { toaster } from "$lib/toaster";
 
     const logger = createLogger("user-control-panel");
     const manager = getVoiceRoom();
@@ -27,6 +37,10 @@
         manager.toggleMute();
     }
 
+    async function toggleDeafen() {
+        manager.toggleDeafen();
+    }
+
     async function toggleCamera() {
         manager.toggleCamera();
     }
@@ -39,6 +53,11 @@
         const inviteUrl = `${page.url.origin}/joincall?roomid=${encodeURIComponent(manager.currentRoomName)}`;
         try {
             await navigator.clipboard.writeText(inviteUrl);
+            toaster.success({
+                title: "Invite Link Copied",
+                description: "The invite link has been copied to your clipboard.",
+                duration: 3000
+            });
             logger.info("invite link copied to clipboard", { inviteUrl });
         } catch (error) {
             logger.error("failed to copy invite link", { error: String(error) });
@@ -57,7 +76,7 @@
         {:else if manager.state === ConnectionState.Connecting}
             <p class="text-gray-500 text-center">Connecting...</p>
             <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
-                ❌
+                <PhoneOff class="w-4 h-4" />
             </button>
         {:else if manager.state === ConnectionState.Connected}
             <div class="flex items-center gap-2">
@@ -66,33 +85,30 @@
                     title="Connected"
                 ></div>
                 <span class="truncate">{manager.roomDisplayName}</span>
-                <span class="text-gray-400 text-xs">
-                    ({manager.allParticipants.length})
-                </span>
                 <button class="hover:shadow-md rounded-md text-xs" title="Copy invite link" onclick={copyInviteLink}>
-                    🔗
+                    <Link class="w-4 h-4" />
                 </button>
             </div>
             <div class="flex items-center gap-2">
-                <button class="hover:shadow-md rounded-md" title="Share Screen" onclick={toggleScreenShare}>
-                    🖥️
+                <button class="hover:shadow-md rounded-md p-1" title="Share Screen" onclick={toggleScreenShare}>
+                    <Monitor class="w-4 h-4" />
                 </button>
-                <button class="hover:shadow-md rounded-md" title="Camera" onclick={toggleCamera}>
-                    📷
+                <button class="hover:shadow-md rounded-md p-1" title="Camera" onclick={toggleCamera}>
+                    <Camera class="w-4 h-4" />
                 </button>
-                <button class="hover:shadow-md rounded-md" title="Leave Room" onclick={leaveRoom}>
-                    ❌
+                <button class="hover:shadow-md rounded-md p-1" title="Leave Room" onclick={leaveRoom}>
+                    <PhoneOff class="w-4 h-4" />
                 </button>
             </div>
         {:else if manager.state === ConnectionState.Reconnecting}
             <p class="text-yellow-500 text-center">Reconnecting...</p>
             <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
-                ❌
+                <PhoneOff class="w-4 h-4" />
             </button>
         {:else}
             <p class="text-gray-500 text-center">{manager.state}</p>
             <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
-                ❌
+                <PhoneOff class="w-4 h-4" />
             </button>
         {/if}
     </div>
@@ -111,16 +127,24 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <button class="hover:shadow-md rounded-md" title="Mute" onclick={toggleMute} class:bg-red-200={!manager.localParticipant?.isMicrophoneEnabled}>
-                🎙️
+            <button class="hover:shadow-md rounded-md p-1" title="Mute" onclick={toggleMute} class:bg-error-500={!manager.canSpeak}>
+                {#if manager.canSpeak}
+                    <Mic class="w-4 h-4" />
+                {:else}
+                    <MicOff class="w-4 h-4" />
+                {/if}
             </button>
-            <button class="hover:shadow-md rounded-md" title="Deafen">
-                🎧
+            <button class="hover:shadow-md rounded-md p-1" title="Deafen" onclick={toggleDeafen} class:bg-error-500={!manager.canHear}>
+                {#if manager.canHear}
+                    <Headphones class="w-4 h-4" />
+                {:else}
+                    <HeadphoneOff class="w-4 h-4" />
+                {/if}
             </button>
-            <button class="hover:shadow-md rounded-md" title="Settings" onclick={logout}>
-                ⚙️
+            <button class="hover:shadow-md rounded-md p-1" title="Settings" onclick={logout}>
+                <Settings class="w-4 h-4" />
             </button>
-            <Lightswitch />
+            <!--<Lightswitch />-->
         </div>
     </div>
 </footer>
@@ -132,6 +156,7 @@
             <audio
                 use:attachTrack={participant.microphoneTrack?.track}
                 autoplay
+                muted={!manager.canHear}
             ></audio>
         {/if}
     {/each}
