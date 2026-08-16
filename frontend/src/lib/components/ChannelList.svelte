@@ -35,7 +35,7 @@
 </script>
 
 <div class="flex flex-col gap-2 p-2">
-    <h2 class="text-lg font-bold">Channels</h2>
+    <h2 class="text-lg font-bold px-2">Gnag Chat</h2>
     {#each channels as channel (channel.roomId)}
         {@const voiceState = voiceStateStore.get(channel.roomId)}
         <div class="flex items-center gap-2">

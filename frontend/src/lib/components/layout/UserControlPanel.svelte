@@ -4,8 +4,11 @@
     import { ConnectionState } from "livekit-client";
     import { getVoiceRoom } from "$lib/voice/voice-context.svelte";
     import type { LayoutData } from "../../../routes/(app)/$types";
+    import { page } from "$app/state";
     import Lightswitch from "../Lightswitch.svelte";
+    import { createLogger } from "$lib/logger";
 
+    const logger = createLogger("user-control-panel");
     const manager = getVoiceRoom();
 
     const session = authClient.useSession();
@@ -30,6 +33,16 @@
 
     async function toggleScreenShare() {
         manager.toggleScreenShare();
+    }
+
+    async function copyInviteLink() {
+        const inviteUrl = `${page.url.origin}/joincall?roomid=${encodeURIComponent(manager.currentRoomName)}`;
+        try {
+            await navigator.clipboard.writeText(inviteUrl);
+            logger.info("invite link copied to clipboard", { inviteUrl });
+        } catch (error) {
+            logger.error("failed to copy invite link", { error: String(error) });
+        }
     }
 </script>
 
@@ -56,6 +69,9 @@
                 <span class="text-gray-400 text-xs">
                     ({manager.allParticipants.length})
                 </span>
+                <button class="hover:shadow-md rounded-md text-xs" title="Copy invite link" onclick={copyInviteLink}>
+                    🔗
+                </button>
             </div>
             <div class="flex items-center gap-2">
                 <button class="hover:shadow-md rounded-md" title="Share Screen" onclick={toggleScreenShare}>

@@ -1,9 +1,10 @@
 import type { LayoutServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
+export const load: LayoutServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
-		throw redirect(302, '/login');
+		const redirectTo = url.pathname + url.search;
+		throw redirect(302, `/login?redirect=${encodeURIComponent(redirectTo)}`);
 	}
 
 	return {

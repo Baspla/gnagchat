@@ -3,7 +3,7 @@
   import { onMount } from "svelte";
   import AppLayout from "$lib/components/layout/AppLayout.svelte";
   import ChannelList from "$lib/components/ChannelList.svelte";
-  import ChatView from "$lib/components/ChatView.svelte";
+  import ChannelView from "$lib/components/ChannelView.svelte";
   import type { DtoChannel } from "$shared/dto/chat";
 
   let selectedChannel: DtoChannel | null = $state(null);
@@ -18,6 +18,6 @@
     <ChannelList bind:selectedChannel />
   {/snippet}
   {#if selectedChannel}
-    <ChatView roomId={selectedChannel.roomId} />
+    <ChannelView channel={selectedChannel} />
   {/if}
 </AppLayout>

@@ -16,6 +16,7 @@ export const channel = sqliteTable('channel', {
     // The Room ID is BOTH the Primary Key AND a Foreign Key!
     roomId: text('room_id').primaryKey().references(() => room.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
+    // TODO description: text('description'),
     aclGroupId: text('acl_group_id'), 
 });
 
