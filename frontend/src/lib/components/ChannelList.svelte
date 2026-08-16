@@ -3,6 +3,7 @@
     import { getVoiceRoom } from "$lib/voice/voice-context.svelte";
     import { voiceStateStore } from "$lib/voice/voice-state-store.svelte";
     import type { DtoChannel } from "$shared/dto/chat";
+    import { onMount } from "svelte";
 
     let {
         selectedChannel = $bindable(null as DtoChannel | null),
@@ -23,8 +24,9 @@
 
     const manager = getVoiceRoom();
 
-    // Initialize voice state store for real-time updates
-    voiceStateStore.init();
+    onMount(() => {
+        voiceStateStore.init();
+    });
 </script>
 
 <div class="flex flex-col gap-2 p-2">

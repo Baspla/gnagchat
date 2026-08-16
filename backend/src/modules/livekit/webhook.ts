@@ -136,7 +136,9 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
                 const identity = event.participant?.identity ?? "";
                 const name = event.participant?.name ?? identity;
                 const avatarUrl = event.participant?.attributes?.image ?? null;
+                console.log(`[DEBUG] room before participantJoined: ${JSON.stringify(voiceStateStore.get(roomName))}`);
                 voiceStateStore.participantJoined(roomName, identity, name, avatarUrl);
+                console.log(`[DEBUG] room after participantJoined: ${JSON.stringify(voiceStateStore.get(roomName))}`);
                 await broadcastVoiceUpdate(roomName);
                 break;
             }
