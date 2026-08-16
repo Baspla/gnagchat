@@ -73,7 +73,8 @@ export class GatewayManager {
     }
 
     connect() {
-        console.log("[DEBUG] CentrifugoLogger mounted, connecting to Centrifugo...");
+        console.log("[DEBUG] Connecting to Centrifugo...");
+        console.log("[DEBUG] GatewayManager initialized with endpoint:", env.PUBLIC_GNAGCHAT_CENTRIFUGO_WS_ENDPOINT);
         this.centrifuge.connect();
         console.log("[DEBUG] Centrifugo connection initiated.");
         this.centrifuge.on("connected", (context) => {
@@ -101,6 +102,7 @@ export class GatewayManager {
 
     private handleWsMessage(msg: WsMessage) {
         const { type, data } = msg.payload;
+        console.log("[DEBUG] Received message of type:", type, "with data:", data);
 
         const specificHandlers = this.handlers.get(type);
         if (specificHandlers) {

@@ -30,8 +30,20 @@ function mapTrackKind(kind: string): string {
 
 /**
  * Publish a voice_room_update event to all members of a room.
+ * If the room does not exist in the database (e.g. it was deleted while
+ * LiveKit still had it), the broadcast is silently skipped.
  */
 async function broadcastVoiceUpdate(roomId: string) {
+    // Resolve member IDs — if the room doesn't exist in the DB there is
+    // nobody to broadcast to, so we skip gracefully.
+    let memberIds: string[];
+    try {
+        memberIds = await ChatService.getRoomMemberIdsAsSystem(roomId);
+    } catch {
+        console.warn(`broadcastVoiceUpdate: Room ${roomId} not found in database, skipping broadcast`);
+        return;
+    }
+
     const state = voiceStateStore.get(roomId);
     if (!state) {
         // Room was deleted (last participant left) — broadcast empty state
@@ -41,7 +53,6 @@ async function broadcastVoiceUpdate(roomId: string) {
             participants: [],
             participantCount: 0,
         };
-        const memberIds = await ChatService.getRoomMemberIdsAsSystem(roomId);
         const wsMessage: WsMessage = {
             id: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
@@ -79,7 +90,6 @@ async function broadcastVoiceUpdate(roomId: string) {
         }),
     };
 
-    const memberIds = await ChatService.getRoomMemberIdsAsSystem(roomId);
     const wsMessage: WsMessage = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
