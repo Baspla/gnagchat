@@ -2,9 +2,12 @@ import { db } from './index';
 import { role, userRole } from '../modules/permission/schema';
 import { user } from '../modules/user/schema';
 import { eq, and } from 'drizzle-orm';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('seed');
 
 export const seedDatabase = async () => {
-    console.log('Seeding database...');
+    logger.info('seeding database...');
 
     // 1. Create a default role for viewing and sending messages
     const existingRole = await db.query.role.findFirst({
@@ -14,14 +17,14 @@ export const seedDatabase = async () => {
     let roleId: string;
     if (existingRole) {
         roleId = existingRole.id;
-        console.log('Default role already exists, skipping creation.');
+        logger.info('default role already exists, skipping');
     } else {
         const [newRole] = await db.insert(role).values({
             name: 'default',
             permissions: ['view_channel', 'send_messages'],
         }).returning();
         roleId = newRole.id;
-        console.log('Default role created.');
+        logger.info('default role created');
     }
 
     // 2. Assign the default role to all existing users
@@ -41,5 +44,5 @@ export const seedDatabase = async () => {
         }
     }
 
-    console.log('Database seeded successfully.');
+    logger.info('database seeded successfully');
 }

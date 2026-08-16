@@ -8,7 +8,10 @@ import { db } from "../../db";
 import { user } from "../user/schema";
 import { inArray } from "drizzle-orm";
 import { ChatService } from "../chat/service";
+import { createLogger } from "../../lib/logger";
+import { UnauthorizedError, InternalError } from "../../lib/errors";
 
+const logger = createLogger('livekit-webhook');
 const receiver = new WebhookReceiver(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET);
 
 /**
@@ -40,7 +43,7 @@ async function broadcastVoiceUpdate(roomId: string) {
     try {
         memberIds = await ChatService.getRoomMemberIdsAsSystem(roomId);
     } catch {
-        console.warn(`broadcastVoiceUpdate: Room ${roomId} not found in database, skipping broadcast`);
+        logger.warn('broadcastVoiceUpdate: room not found, skipping', { roomId });
         return;
     }
 
@@ -110,13 +113,15 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
         const event = await receiver.receive(body, authHeader);
         const { event: eventName } = event;
 
-        console.log(`Received LiveKit webhook event: ${eventName} for room: ${event.room?.name}`);
+        logger.info('livekit webhook event', { event: eventName, room: event.room?.name });
 
         // Extract room name (which is our chat room ID)
         const roomName = event.room?.name;
         if (!roomName) {
             return { status: 200, body: "OK" };
         }
+
+        logger.debug('voice state before update', { room: roomName, state: voiceStateStore.get(roomName) });
 
         switch (eventName) {
             case "room_started": {
@@ -136,9 +141,7 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
                 const identity = event.participant?.identity ?? "";
                 const name = event.participant?.name ?? identity;
                 const avatarUrl = event.participant?.attributes?.image ?? null;
-                console.log(`[DEBUG] room before participantJoined: ${JSON.stringify(voiceStateStore.get(roomName))}`);
                 voiceStateStore.participantJoined(roomName, identity, name, avatarUrl);
-                console.log(`[DEBUG] room after participantJoined: ${JSON.stringify(voiceStateStore.get(roomName))}`);
                 await broadcastVoiceUpdate(roomName);
                 break;
             }
@@ -180,9 +183,16 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
                 break;
         }
 
+        logger.debug('voice state after update', { room: roomName, state: voiceStateStore.get(roomName) });
+
         return { status: 200, body: "OK" };
     } catch (error: any) {
-        console.error("Webhook handler error:", error);
-        return { status: 401, body: "Unauthorized" };
+        // Signature verification failure is a 401; everything else is a 500
+        if (error?.message?.includes('signature') || error?.message?.includes('webhook')) {
+            logger.warn('webhook signature verification failed', { error: error.message });
+            return { status: 401, body: "Unauthorized" };
+        }
+        logger.error('webhook handler error', { error: String(error), stack: error?.stack });
+        return { status: 500, body: "Internal Server Error" };
     }
 }

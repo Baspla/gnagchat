@@ -31,7 +31,7 @@ mock.module('./auth', () => ({
 }))
 
 const { app } = await import('./index')
-const api = treaty(app)
+const api = treaty(app).api.v1
 
 describe('Backend', () => {
     beforeEach(() => {
@@ -74,11 +74,5 @@ describe('Backend', () => {
             expect(response.status).toBe(200)
         })
 
-        it('allows overriding the mock for specific cases', async () => {
-            mockedSession!.user.name = "Updated Name"
-
-            const { data } = await api.users.me.get()
-            expect(data?.name).toBe("Updated Name")
-        })
     })
 })

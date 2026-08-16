@@ -1,5 +1,8 @@
 import { ReactiveRoom } from "$lib/livekit.svelte";
 import { ConnectionState } from "livekit-client";
+import { createLogger } from "$lib/logger";
+
+const logger = createLogger("voice-room-manager");
 
 export class VoiceRoomManager {
     room = $state<ReactiveRoom>(new ReactiveRoom({
@@ -86,7 +89,7 @@ export class VoiceRoomManager {
                 );
             }
         } catch (error) {
-            console.error("Error toggling mute:", error);
+            logger.error("error toggling mute", { error: String(error) });
         }
     }
 
@@ -98,7 +101,7 @@ export class VoiceRoomManager {
                 );
             }
         } catch (error) {
-            console.error("Error toggling camera:", error);
+            logger.error("error toggling camera", { error: String(error) });
         }
     }
 
@@ -114,7 +117,7 @@ export class VoiceRoomManager {
                 );
             }
         } catch (error) {
-            console.error("Error toggling screen share:", error);
+            logger.error("error toggling screen share", { error: String(error) });
         }
     }
 

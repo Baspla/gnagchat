@@ -3,6 +3,9 @@ import { env } from "$env/dynamic/public";
 import { api } from "$lib/api";
 import type { WsEvent, WsMessage } from "$shared/dto/ws-message";
 import { Centrifuge, type PublicationContext } from "centrifuge";
+import { createLogger, getConfiguredLevel } from "$lib/logger";
+
+const logger = createLogger("gateway");
 
 type WsEventType = WsEvent["type"];
 type WsEventData<T extends WsEventType> = Extract<WsEvent, { type: T }>["data"];
@@ -25,7 +28,8 @@ export class GatewayManager {
             env.PUBLIC_GNAGCHAT_CENTRIFUGO_WS_ENDPOINT || "http://localhost:8000",
             {
                 getToken: this.getToken,
-                debug: true,
+                // Only enable Centrifuge debug logging when our log level is debug
+                debug: getConfiguredLevel() === "debug",
             },
         ),
     );
@@ -40,7 +44,7 @@ export class GatewayManager {
         type: T,
         handler: (data: WsEventData<T>, message: WsMessage) => void,
     ): () => void {
-        console.log("[DEBUG] Registering handler for event type:", type);
+        logger.debug("registering handler for event type", { type });
         const set = this.handlers.get(type) ?? new Set<WsEventHandler>();
         const wrapped = handler as WsEventHandler;
         set.add(wrapped);
@@ -73,14 +77,12 @@ export class GatewayManager {
     }
 
     connect() {
-        console.log("[DEBUG] Connecting to Centrifugo...");
-        console.log("[DEBUG] GatewayManager initialized with endpoint:", env.PUBLIC_GNAGCHAT_CENTRIFUGO_WS_ENDPOINT);
+        logger.info("connecting to Centrifugo");
         this.centrifuge.connect();
-        console.log("[DEBUG] Centrifugo connection initiated.");
         this.centrifuge.on("connected", (context) => {
-            console.log("[DEBUG] Centrifugo connected:", context);
+            logger.info("Centrifugo connected");
             if (!this.userId) {
-                console.error("No user ID found");
+                logger.error("no user ID found");
                 return;
             }
             try {
@@ -93,16 +95,17 @@ export class GatewayManager {
                     this.handleWsMessage(msg);
                 });
             } catch (error) {
+                logger.error("failed to subscribe to user channel", { userId: this.userId, error: String(error) });
             }
         });
         this.centrifuge.on("disconnected", (context) => {
-            console.log("[DEBUG] Centrifugo disconnected:", context);
+            logger.info("Centrifugo disconnected");
         });
     }
 
     private handleWsMessage(msg: WsMessage) {
         const { type, data } = msg.payload;
-        console.log("[DEBUG] Received message of type:", type, "with data:", data);
+        logger.debug("received message", { type });
 
         const specificHandlers = this.handlers.get(type);
         if (specificHandlers) {
@@ -110,7 +113,7 @@ export class GatewayManager {
                 handler(data, msg);
             }
         } else {
-            console.debug("[DEBUG] No handler registered for event type:", type, msg);
+            logger.debug("no handler registered for event type", { type });
         }
 
         const anyHandlers = this.handlers.get("*");

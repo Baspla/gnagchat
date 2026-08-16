@@ -13,6 +13,10 @@ import type {
 } from "$shared/dto";
 import { SvelteMap, SvelteSet } from "svelte/reactivity";
 import { authClient } from "$lib/auth-client";
+import { createLogger } from "$lib/logger";
+import { getErrorMessage } from "$lib/errors";
+
+const logger = createLogger("chat-store");
 
 // ── Reactive state ──────────────────────────────────────────────────────
 
@@ -79,20 +83,20 @@ export const chatStore = {
      * for the given room.
      */
     async loadHistory(roomId: string): Promise<void> {
-        console.log("[ChatStore] Loading history for room", roomId);
+        logger.debug("loading history", { roomId });
         const res = await api.chat.rooms({ roomId }).history.get({
             query: { limit: 50 },
         });
 
         if (res.data && Array.isArray(res.data)) {
-            console.log("[ChatStore] Loaded", res.data.length, "messages for room", roomId);
+            logger.debug("loaded messages", { roomId, count: res.data.length });
             const messageMap = new SvelteMap<string, DtoChatMessage>();
             for (const msg of res.data) {
                 messageMap.set(msg.id, msg);
             }
             rooms.set(roomId, messageMap);
         } else if (res.error) {
-            console.error("[ChatStore] Failed to load history for room", roomId, res.error);
+            logger.error("failed to load history", { roomId, error: getErrorMessage(res.error) });
         }
     },
 
@@ -112,7 +116,7 @@ export const chatStore = {
      */
     async sendMessage(roomId: string, content: string): Promise<DtoChatMessage | null> {
         if (content.trim() === "") {
-            console.warn("[ChatStore] Attempted to send empty message to room", roomId);
+            logger.warn("attempted to send empty message", { roomId });
             return null;
         }
         const nonce = crypto.randomUUID();
@@ -152,7 +156,7 @@ export const chatStore = {
             if (messages) {
                 messages.delete(nonce);
             }
-            console.error("[ChatStore] Failed to send message:", res.error);
+            logger.error("failed to send message", { roomId, error: getErrorMessage(res.error) });
         }
 
         return null;
@@ -164,16 +168,16 @@ export const chatStore = {
      * Returns a cleanup function that removes all listeners.
      */
     init(): () => void {
-        console.log("[ChatStore] Initializing gateway listeners...");
+        logger.info("initializing gateway listeners");
         if (_unsubscribes) {
-            console.warn("[ChatStore] Gateway listeners already initialized.");
+            logger.warn("gateway listeners already initialized");
             return () => { };
         }
 
         try {
             var gw = getGatewayManager();
         } catch {
-            console.warn("[ChatStore] GatewayManager not yet available; retry after mount.");
+            logger.warn("gateway manager not yet available; retry after mount");
             return () => { };
         }
 

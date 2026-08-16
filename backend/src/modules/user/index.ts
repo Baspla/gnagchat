@@ -1,4 +1,3 @@
-// modules/user/index.ts
 import { Elysia, t } from 'elysia'
 import { UserService } from './service'
 import { Modules } from '@gnagchat/shared/constants'
@@ -9,17 +8,9 @@ export const userModule = new Elysia({ prefix: '/users', name: Modules.USER })
     .derive({ as: 'scoped' }, () => ({
         userService: UserService
     }))
-    .get('/me', async ({ user, status, userService }) => {
-        try {
-            return await userService.getUserAsUser(user.id, user.id)
-        } catch (e) {
-            return status('Not Found', "User profile not found")
-        }
+    .get('/me', async ({ user, userService }) => {
+        return await userService.getUserAsUser(user.id, user.id)
     }, { auth: true })
-    .get('/:id', async ({ user,params, status, userService }) => {
-        try {
-            return await userService.getUserAsUser(user.id, params.id)
-        } catch (e) {
-            return status('Not Found', "User profile not found")
-        }
+    .get('/:id', async ({ user, params, userService }) => {
+        return await userService.getUserAsUser(user.id, params.id)
     }, { auth: true })

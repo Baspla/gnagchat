@@ -3,6 +3,9 @@ import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import * as schema from './schema';
 //ts-ignore-next-line
 import { Database } from 'bun:sqlite';
+import { createLogger } from '../lib/logger';
+
+const logger = createLogger('db');
 
 const client = new Database('data/sqlite.db');
 client.run('PRAGMA journal_mode = WAL;');
@@ -15,8 +18,7 @@ await migrate(db, {migrationsFolder: 'drizzle'});
  * Should be called during graceful shutdown.
  */
 export async function closeDb(): Promise<void> {
-    // Checkpoint the WAL to ensure all data is written to the main database file
-    console.log('Checkpointing WAL before closing the database...');
+    logger.info('checkpointing WAL before closing database');
     client.run('PRAGMA wal_checkpoint(TRUNCATE);');
     client.close();
 }

@@ -3,13 +3,16 @@
   import { env } from "$env/dynamic/public";
   import { setPageTitle } from "$lib/utils";
   import { onMount } from "svelte";
+  import { createLogger } from "$lib/logger";
+
+  const logger = createLogger("login");
 
   onMount(() => {
     setPageTitle();
   });
 
   async function login() {
-    console.log("Logging in with provider:", env.PUBLIC_GNAGCHAT_OAUTH_PROVIDER_ID || "gnagplus");
+    logger.info("logging in with provider", { provider: env.PUBLIC_GNAGCHAT_OAUTH_PROVIDER_ID || "gnagplus" });
     await authClient.signIn.social({
       provider: env.PUBLIC_GNAGCHAT_OAUTH_PROVIDER_ID || "gnagplus",
       callbackURL: "/",

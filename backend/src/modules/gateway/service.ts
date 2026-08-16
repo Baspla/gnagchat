@@ -2,6 +2,9 @@ import type { User } from 'better-auth';
 import * as jose from 'jose'
 import { env } from "../../env";
 import type { WsMessage } from '$shared/dto/ws-message';
+import { createLogger } from '../../lib/logger';
+
+const logger = createLogger('gateway');
 
 export async function generateCentrifugoToken(user: User, deviceId: string): Promise<string> {
     let channels = [`user:${user.id}`, `device:${user.id}:${deviceId}`, `presence`];
@@ -22,10 +25,10 @@ async function generateCentrifugoTokenForChannels(user: User, channels: string[]
     return token;
 }
 
-async function sendAPIMessage(path: string,payload: any): Promise<Response> {
-    console.log(`[debug] Sending API message to Centrifugo: ${env.CENTRIFUGO_URL}${path} with payload:`, payload);
+async function sendAPIMessage(path: string, payload: unknown): Promise<Response> {
+    logger.debug('sending api message', { path, payload });
     const url = `${env.CENTRIFUGO_URL}${path}`;
-    return await fetch(url, {
+    const response = await fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -33,32 +36,20 @@ async function sendAPIMessage(path: string,payload: any): Promise<Response> {
             'X-Centrifugo-Error-Mode': 'transport',
         },
         body: JSON.stringify(payload),
-    }).then(async response => {
-        console.log(`[debug] Received response from Centrifugo: ${response.status} ${response.statusText}`);
-        const body = await response.body?.getReader().read();
-        if (body) {
-            const text = new TextDecoder().decode(body.value);
-            console.log(`[debug] Response body: ${text}`);
-        }
-        return response;
     });
+
+    logger.debug('centrifugo response', { status: response.status, statusText: response.statusText });
+    return response;
 }
 
-/**
- * 
- * @param channels 
- * @param data 
- */
 export async function broadcastMessage(channels: string[], data: WsMessage): Promise<void> {
     const broadcast_payload = {
         channels: channels,
         data: data,
     };
-    sendAPIMessage('/api/broadcast', broadcast_payload).then(response => {
-        if (!response.ok) {
-            console.error(`Failed to broadcast message: ${response.status} ${response.statusText}`);
-        }
-    }).catch(error => {
-        console.error(`Error broadcasting message: ${error}`);
-    });
+    const response = await sendAPIMessage('/api/broadcast', broadcast_payload);
+    if (!response.ok) {
+        logger.error('failed to broadcast message', { status: response.status, statusText: response.statusText });
+        throw new Error(`Centrifugo broadcast failed: ${response.status} ${response.statusText}`);
+    }
 }

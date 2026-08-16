@@ -1,4 +1,4 @@
-import type { Handle } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { authClient } from '$lib/auth-client';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
@@ -30,23 +30,16 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 		}
 	} catch (error) {
-		console.error('Failed to populate session in event.locals', error);
+		// Session population failure is not critical — the app handles missing sessions
 	}
 
 	return resolve(event);
 };
 
-
-/*
-/** @type {import('@sveltejs/kit').HandleServerError} */
-/*
-export function handleError({ error, event }) {
-    // This WILL print to your terminal stdout in production
-    console.error('--- PRODUCTION ERROR CAUGHT ---');
-    console.error(error); 
-    console.error('--------------------------------');
-	return 
-    return {
-        message: 'Something went wrong, but we logged it!'
-    };
-}*/
+/** Global server-side error handler — logs to stdout */
+export const handleError: HandleServerError = ({ error, event }) => {
+	console.error(`[server-error] ${event.request.method} ${event.url.pathname}`, error);
+	return {
+		message: 'An unexpected error occurred',
+	};
+};

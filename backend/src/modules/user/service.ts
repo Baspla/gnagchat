@@ -2,6 +2,7 @@ import { db } from '../../db'
 import type { RedactedUser, User } from '../../db/schema'
 import { user } from '../../db/schema'
 import { eq } from 'drizzle-orm'
+import { NotFoundError, InternalError } from '../../lib/errors'
 
 export abstract class UserService {
     static async getUserById (id: string) : Promise<User> {
@@ -11,7 +12,7 @@ export abstract class UserService {
             .where(eq(user.id, id))
             .limit(1)
 
-        if (!userData) throw new Error('User not found')
+        if (!userData) throw new NotFoundError('User not found')
         return userData
     }
 
@@ -25,7 +26,7 @@ export abstract class UserService {
             .from(user)
             .where(eq(user.id, id))
             .limit(1)
-        if (!userData) throw new Error('User not found')
+        if (!userData) throw new NotFoundError('User not found')
         return userData
     }
 
@@ -47,7 +48,7 @@ export abstract class UserService {
             })
             .returning()
 
-        if (!result) throw new Error('Failed to upsert user')    
+        if (!result) throw new InternalError('Failed to upsert user')    
 
         return result
     }

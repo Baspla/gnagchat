@@ -4,7 +4,9 @@ import { db } from "../../db";
 import { genericOAuth } from "better-auth/plugins/generic-oauth";
 import { env } from "../../env";
 import { UserService } from "../user/service";
+import { createLogger } from "../../lib/logger";
 
+const logger = createLogger('auth');
 const userService = UserService;
 
 export const auth = betterAuth({
@@ -24,7 +26,7 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (user) => {
-					console.log("New user created:", user);
+					logger.info('new user created', { userId: user.id });
 					await userService.upsertUserAsSystem({
 						id: user.id,
 						name: user.name,
@@ -32,35 +34,24 @@ export const auth = betterAuth({
 						emailVerified: user.emailVerified,
 						image: user.image,
 					}).catch(e => {
-						console.error("Error upserting user:", e);
+						logger.error('error upserting user', { userId: user.id, error: String(e) });
 					});
-					//logging
 				}
 			}
 		},
 		session: {
 			create: {
 				after: async (session) => {
-					console.log("New session created:", session);
-					//logging
+					logger.info('new session created', { sessionId: session.id, userId: session.userId });
 				}
 			},
 			delete: {
 				after: async (session) => {
-					console.log("Session deleted:", session);
-					//logging
+					logger.info('session deleted', { sessionId: session.id, userId: session.userId });
 				}
 			}
 		}
 	},
-	/*hooks: {
-		after: createAuthMiddleware(async (ctx) => {
-			if (ctx.path.startsWith("/sign-up")) {
-				console.log("Auth context after hook:", ctx);
-			}
-			ctx.context.newSession
-		})
-	},*/
 	plugins: [genericOAuth({
 		config: [
 			{
@@ -68,12 +59,10 @@ export const auth = betterAuth({
 				clientId: env.OAUTH_CLIENT_ID!,
 				clientSecret: env.OAUTH_CLIENT_SECRET!,
 				discoveryUrl: env.OAUTH_DISCOVERY_URL!,
-				// We need this awfulness since basePath and baseURL mess things up when proxied.
 				redirectURI: `${env.BETTER_AUTH_URL}/api/betterauth/auth/oauth2/callback/${env.OAUTH_PROVIDER_ID}`,
 				scopes: ["openid", "profile", "email", "groups"],
 				overrideUserInfo: true,
 				mapProfileToUser: async (profile: unknown) => {
-					//console.log("OAuth profile:", profile);
 					const oauthProfile = (profile ?? {}) as Record<string, unknown>;
 					const email = typeof oauthProfile.email === "string" ? oauthProfile.email : "";
 					const fallbackName = email.includes("@") ? email.split("@")[0] : "user";
@@ -91,7 +80,6 @@ export const auth = betterAuth({
 						emailVerified: Boolean(oauthProfile.email_verified),
 						groups: JSON.stringify(Array.isArray(oauthProfile.groups) ? oauthProfile.groups : []),
 					};
-					//console.log("Mapped user:", user);
 					return user;
 				},
 			},

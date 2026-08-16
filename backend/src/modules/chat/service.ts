@@ -11,6 +11,10 @@ import type { WsMessage } from '$shared/dto/ws-message';
 import type { DtoVoiceRoom } from '$shared/dto/voice-room';
 import { broadcastMessage } from '../gateway/service';
 import { voiceStateStore } from '../livekit/voice-state';
+import { createLogger } from '../../lib/logger';
+import { ForbiddenError, NotFoundError, BadRequestError, InternalError } from '../../lib/errors';
+
+const logger = createLogger('chat');
 
 export class ChatService {
 
@@ -49,13 +53,13 @@ export class ChatService {
         });
 
         if (!targetRoom) {
-            throw new Error('Room not found');
+            throw new NotFoundError('Room not found');
         }
         if (!canView) {
             if (targetRoom.type === 'channel') {
-                throw new Error('Forbidden: Insufficient permissions to view this channel');
+                throw new ForbiddenError('Insufficient permissions to view this channel');
             } else {
-                throw new Error('Forbidden: Not a participant of this direct message');
+                throw new ForbiddenError('Not a participant of this direct message');
             }
         }
 
@@ -69,7 +73,7 @@ export class ChatService {
     static async saveMessageAsUser(userId: string, roomId: string, content: string, nonce?: string) {
         const canView = await this.canViewRoomAsUser(userId, roomId);
         if (!canView) {
-            throw new Error('Forbidden: Insufficient permissions to view this room');
+            throw new ForbiddenError('Insufficient permissions to view this room');
         }
 
         const roomInfo = await this.getRoomTypeAsUser(userId, roomId);
@@ -78,12 +82,12 @@ export class ChatService {
         if (roomInfo.type === 'channel') {
             const canSend = await PermissionService.hasPermissionInChannel(userId, roomId, 'send_messages');
             if (!canSend) {
-                throw new Error('Forbidden: Insufficient permissions to send messages in this channel');
+                throw new ForbiddenError('Insufficient permissions to send messages in this channel');
             }
         } else if (roomInfo.type === 'dm') {
             // For DMs, no additional permission checks are needed since access was already verified
         } else {
-            throw new Error('Unknown room type');
+            throw new InternalError('Unknown room type');
         }
 
         // 3. Save Message
@@ -94,13 +98,12 @@ export class ChatService {
         }).returning();
 
         // 4. Get User info for DTO
-
         const userRecord: User | undefined = await db.query.user.findFirst({
             where: eq(user.id, userId)
         });
 
         const dto = await this.transformMessageToDto(savedMessage, nonce);
-        console.log(`dto for saved message:`, dto);
+        logger.debug('saved message dto', { roomId, messageId: savedMessage.id });
 
         // 5. Determine all users to recieve this message
         const roomMembers = await this.getRoomMemberIdsAsSystem(roomId);
@@ -115,13 +118,12 @@ export class ChatService {
             },
         };
 
-        broadcastMessage(roomMembers.map(id => `user:${id}`), wsMessage).then(() => {
-            console.log(`Message broadcasted to room ${roomId}:`, wsMessage);
-        }).catch(err => {
-            console.error(`Failed to broadcast message to room ${roomId}:`, err);
-        }).then(() => {
-            console.log(`Message saved and published to room ${roomId}:`, savedMessage);
-        });
+        try {
+            await broadcastMessage(roomMembers.map(id => `user:${id}`), wsMessage);
+            logger.debug('message broadcasted', { roomId, messageId: savedMessage.id });
+        } catch (err) {
+            logger.error('failed to broadcast message', { roomId, messageId: savedMessage.id, error: String(err) });
+        }
 
         return dto;
     }
@@ -149,7 +151,7 @@ export class ChatService {
         });
 
         if (!targetRoom) {
-            throw new Error('Room not found');
+            throw new NotFoundError('Room not found');
         }
 
         if (targetRoom.type === 'channel') {
@@ -230,7 +232,7 @@ export class ChatService {
     static async createChannel(name: string): Promise<DtoChannel> {
         const validation = validateChannelName(name);
         if (!validation.valid) {
-            throw new Error(validation.error);
+            throw new BadRequestError(validation.error ?? 'Invalid channel name');
         }
 
         const trimmedName = name.trim();
@@ -263,7 +265,7 @@ export class ChatService {
         // 1. Check permission
         const canDelete = await PermissionService.hasPermissionInChannel(userId, channelId, 'delete_channel');
         if (!canDelete) {
-            throw new Error('Forbidden: Insufficient permissions to delete this channel');
+            throw new ForbiddenError('Insufficient permissions to delete this channel');
         }
 
         // 2. Verify the room exists and is a channel
@@ -272,11 +274,11 @@ export class ChatService {
         });
 
         if (!targetRoom) {
-            throw new Error('Channel not found');
+            throw new NotFoundError('Channel not found');
         }
 
         if (targetRoom.type !== 'channel') {
-            throw new Error('Room is not a channel');
+            throw new BadRequestError('Room is not a channel');
         }
 
         // 3. Get all member IDs before deletion (for subscription recalculation)

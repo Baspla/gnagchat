@@ -48,7 +48,7 @@ export function getDeviceProfile(): DeviceProfile {
       localStorage.setItem(STORAGE_KEY, deviceId);
     }
   } catch (err) {
-    console.warn('LocalStorage is blocked or unavailable:', err);
+    // LocalStorage is not critical — fall back to UUID
   }
 
   return {

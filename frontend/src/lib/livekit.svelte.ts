@@ -24,6 +24,9 @@ import type { Action } from 'svelte/action';
 import { api } from './api';
 import { env } from '$env/dynamic/public';
 import { getDeviceId } from './device';
+import { createLogger } from '$lib/logger';
+
+const logger = createLogger('livekit');
 
 /**
  * ==========================================
@@ -626,13 +629,13 @@ export class ReactiveRoom {
             .get({ query: { roomName, deviceId } })
             .then((res) => {
                 if (res.status !== 200) {
-                    console.error("Failed to get token:", res);
+                    logger.error("failed to get token", { roomName, status: res.status });
                     return '';
                 }
                 if (res.data && res.data.token) {
                     return res.data.token;
                 } else {
-                    console.error("Token not found in response:", res);
+                    logger.error("token not found in response", { roomName });
                     return '';
                 }
             });
