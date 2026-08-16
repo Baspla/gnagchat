@@ -8,6 +8,25 @@ import type { DtoVoiceRoom, DtoVoiceParticipant, DtoVoiceTrack } from "$shared/d
 class VoiceRoomStateStore {
     private rooms = new Map<string, DtoVoiceRoom>();
 
+    private ensureRoom(roomId: string, sid: string = ""): DtoVoiceRoom {
+        const existing = this.rooms.get(roomId);
+        if (existing) {
+            if (sid && !existing.sid) {
+                existing.sid = sid;
+            }
+            return existing;
+        }
+
+        const room: DtoVoiceRoom = {
+            roomId,
+            sid,
+            participants: [],
+            participantCount: 0,
+        };
+        this.rooms.set(roomId, room);
+        return room;
+    }
+
     get(roomId: string): DtoVoiceRoom | undefined {
         return this.rooms.get(roomId);
     }
@@ -34,7 +53,9 @@ class VoiceRoomStateStore {
     // ── Mutators (called from webhook handler) ──────────────────────────
 
     roomStarted(roomId: string, sid: string): boolean {
-        if (this.rooms.has(roomId)) {
+        const room = this.rooms.get(roomId);
+        if (room) {
+            room.sid = sid;
             return false; // already tracked
         }
         this.rooms.set(roomId, {
@@ -55,10 +76,7 @@ class VoiceRoomStateStore {
      * Returns the userId if the participant was newly added, or undefined if already present.
      */
     participantJoined(roomId: string, identity: string, name: string, avatarUrl: string | null): string | undefined {
-        const room = this.rooms.get(roomId);
-        if (!room) {
-            return undefined; // room not tracked (shouldn't happen)
-        }
+        const room = this.ensureRoom(roomId);
 
         const userId = identity.split(":")[0];
         const existing = room.participants.find((p) => p.identity === identity);

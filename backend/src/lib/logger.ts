@@ -48,7 +48,7 @@ export function createLogger(scope: string): Logger {
 
         const time = formatTime(new Date());
         const prefix = `[${time}] [${level}] ${msg}`;
-        const formatted = data === undefined ? prefix : `${prefix} [data] ${formatData(data)}`;
+        const formatted = data === undefined ? prefix : `${prefix} ${formatData(data)}`;
 
         // eslint-disable-next-line no-console
         console[level === "debug" ? "log" : level](formatted);
