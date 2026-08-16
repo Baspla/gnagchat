@@ -47,27 +47,27 @@
             >
                 <div class="flex items-center gap-2">
                     <span>{channel.name}</span>
-                    {#if voiceState && voiceState.participantCount > 0}
+                    {#if voiceState && voiceState.userCount > 0}
                         <span
                             class="inline-flex items-center gap-1 text-green-400 text-xs"
                             title="Voice active"
                         >
                             🔊
                             <span class="text-gray-400"
-                                >{voiceState.participantCount}</span
+                                >{voiceState.userCount}</span
                             >
                         </span>
                     {/if}
                 </div>
-                {#if voiceState && voiceState.participantCount > 0}
+                {#if voiceState && voiceState.userCount > 0}
                     <div class="flex flex-wrap gap-1 mt-1">
-                        {#each voiceState.participants as participant}
+                        {#each voiceState.users as user}
                             <span
                                 class="text-xs text-gray-500 bg-gray-800 rounded px-1.5 py-0.5 flex items-center gap-1"
                             >
-                                {#if participant.avatarUrl}
+                                {#if user.avatarUrl}
                                     <img
-                                        src={participant.avatarUrl}
+                                        src={user.avatarUrl}
                                         alt=""
                                         class="w-3 h-3 rounded-full"
                                     />
@@ -76,7 +76,12 @@
                                         class="w-3 h-3 rounded-full bg-gray-600 inline-block"
                                     ></span>
                                 {/if}
-                                {participant.name}
+                                {user.name}
+                                {#if user.devices.length > 1}
+                                    <span class="text-[10px] text-gray-400"
+                                        >+{user.devices.length - 1}</span
+                                    >
+                                {/if}
                             </span>
                         {/each}
                     </div>

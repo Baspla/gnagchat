@@ -18,7 +18,7 @@ class VoiceStateStore {
         const gw = getGatewayManager();
         this.#unsub = gw.on("voice_room_update", (data) => {
             const room = data as DtoVoiceRoom;
-            if (room.participantCount === 0) {
+            if (room.userCount === 0) {
                 // Room is empty — remove from map
                 this.#rooms.delete(room.roomId);
             } else {
@@ -60,7 +60,7 @@ class VoiceStateStore {
      */
     hasActiveRoom(roomId: string): boolean {
         const room = this.#rooms.get(roomId);
-        return room !== undefined && room.participantCount > 0;
+        return room !== undefined && room.userCount > 0;
     }
 
     /**
@@ -73,17 +73,17 @@ class VoiceStateStore {
     /**
      * Get participant count for a room.
      */
-    participantCount(roomId: string): number {
-        return this.#rooms.get(roomId)?.participantCount ?? 0;
+    userCount(roomId: string): number {
+        return this.#rooms.get(roomId)?.userCount ?? 0;
     }
 
     /**
      * Get participant names for a room.
      */
-    participantNames(roomId: string): string[] {
+    userNames(roomId: string): string[] {
         const room = this.#rooms.get(roomId);
         if (!room) return [];
-        return room.participants.map((p) => p.name);
+        return room.users.map((u) => u.name);
     }
 }
 

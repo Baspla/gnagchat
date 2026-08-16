@@ -1,9 +1,12 @@
-import type { DtoVoiceRoom, DtoVoiceParticipant, DtoVoiceTrack } from "$shared/dto/voice-room";
+import type { DtoVoiceRoom, DtoVoiceUser, DtoVoiceDevice, DtoVoiceTrack } from "$shared/dto/voice-room";
 
 /**
  * In-memory store for LiveKit voice room state.
  * Mutable in shared module scope; survives only as long as the process.
  * On restart both the backend and LiveKit restart together, so this is sufficient.
+ *
+ * Each LiveKit identity is "userId:deviceId". Multiple devices from the same user
+ * are grouped under a single DtoVoiceUser entry with a devices[] array.
  */
 class VoiceRoomStateStore {
     private rooms = new Map<string, DtoVoiceRoom>();
@@ -20,8 +23,8 @@ class VoiceRoomStateStore {
         const room: DtoVoiceRoom = {
             roomId,
             sid,
-            participants: [],
-            participantCount: 0,
+            users: [],
+            userCount: 0,
         };
         this.rooms.set(roomId, room);
         return room;
@@ -61,8 +64,8 @@ class VoiceRoomStateStore {
         this.rooms.set(roomId, {
             roomId,
             sid,
-            participants: [],
-            participantCount: 0,
+            users: [],
+            userCount: 0,
         });
         return true;
     }
@@ -72,35 +75,42 @@ class VoiceRoomStateStore {
     }
 
     /**
-     * Adds or updates a participant in a room.
-     * Returns the userId if the participant was newly added, or undefined if already present.
+     * Adds or updates a device for a user in a room.
+     * Returns the userId if the user was newly added, or undefined if already present.
      */
     participantJoined(roomId: string, identity: string, name: string, avatarUrl: string | null): string | undefined {
         const room = this.ensureRoom(roomId);
-
         const userId = identity.split(":")[0];
-        const existing = room.participants.find((p) => p.identity === identity);
-        if (existing) {
-            // Update existing participant info
-            existing.name = name;
-            existing.avatarUrl = avatarUrl;
+
+        let user = room.users.find((u) => u.userId === userId);
+        if (user) {
+            // Update user info
+            user.name = name;
+            user.avatarUrl = avatarUrl;
+
+            // Add or update device
+            const existingDevice = user.devices.find((d) => d.identity === identity);
+            if (!existingDevice) {
+                user.devices.push({ identity, tracks: [] });
+            }
             return undefined;
         }
 
-        room.participants.push({
+        // New user with one device
+        room.users.push({
             userId,
             name,
             avatarUrl,
-            identity,
-            tracks: [],
+            devices: [{ identity, tracks: [] }],
         });
-        room.participantCount = room.participants.length;
+        room.userCount = room.users.length;
         return userId;
     }
 
     /**
-     * Removes a participant from a room.
-     * Returns the room state if the room still has participants, or "empty" if the room should be removed.
+     * Removes a device from a user in a room.
+     * If the user has no more devices, the user is removed.
+     * Returns "deleted" if the room becomes empty, "updated" if still has users, or undefined if not found.
      */
     participantLeft(roomId: string, identity: string): "deleted" | "updated" | undefined {
         const room = this.rooms.get(roomId);
@@ -108,15 +118,27 @@ class VoiceRoomStateStore {
             return undefined;
         }
 
-        const idx = room.participants.findIndex((p) => p.identity === identity);
-        if (idx === -1) {
+        const userId = identity.split(":")[0];
+        const userIdx = room.users.findIndex((u) => u.userId === userId);
+        if (userIdx === -1) {
             return undefined;
         }
 
-        room.participants.splice(idx, 1);
-        room.participantCount = room.participants.length;
+        const user = room.users[userIdx];
+        const deviceIdx = user.devices.findIndex((d) => d.identity === identity);
+        if (deviceIdx === -1) {
+            return undefined;
+        }
 
-        if (room.participants.length === 0) {
+        user.devices.splice(deviceIdx, 1);
+
+        // If user has no more devices, remove the user
+        if (user.devices.length === 0) {
+            room.users.splice(userIdx, 1);
+            room.userCount = room.users.length;
+        }
+
+        if (room.users.length === 0) {
             this.rooms.delete(roomId);
             return "deleted";
         }
@@ -129,19 +151,25 @@ class VoiceRoomStateStore {
             return false;
         }
 
-        const participant = room.participants.find((p) => p.identity === identity);
-        if (!participant) {
+        const userId = identity.split(":")[0];
+        const user = room.users.find((u) => u.userId === userId);
+        if (!user) {
             return false;
         }
 
-        const existing = participant.tracks.find((t) => t.sid === sid);
+        const device = user.devices.find((d) => d.identity === identity);
+        if (!device) {
+            return false;
+        }
+
+        const existing = device.tracks.find((t) => t.sid === sid);
         if (existing) {
             existing.kind = kind;
             existing.muted = muted;
             return false;
         }
 
-        participant.tracks.push({ sid, kind, muted });
+        device.tracks.push({ sid, kind, muted });
         return true;
     }
 
@@ -151,17 +179,23 @@ class VoiceRoomStateStore {
             return false;
         }
 
-        const participant = room.participants.find((p) => p.identity === identity);
-        if (!participant) {
+        const userId = identity.split(":")[0];
+        const user = room.users.find((u) => u.userId === userId);
+        if (!user) {
             return false;
         }
 
-        const idx = participant.tracks.findIndex((t) => t.sid === sid);
+        const device = user.devices.find((d) => d.identity === identity);
+        if (!device) {
+            return false;
+        }
+
+        const idx = device.tracks.findIndex((t) => t.sid === sid);
         if (idx === -1) {
             return false;
         }
 
-        participant.tracks.splice(idx, 1);
+        device.tracks.splice(idx, 1);
         return true;
     }
 }

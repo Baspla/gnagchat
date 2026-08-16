@@ -1,7 +1,7 @@
 import { WebhookReceiver } from "livekit-server-sdk";
 import { voiceStateStore } from "./voice-state";
 import { broadcastMessage } from "../gateway/service";
-import type { DtoVoiceRoom } from "$shared/dto/voice-room";
+import type { DtoVoiceRoom, DtoVoiceUser } from "$shared/dto/voice-room";
 import type { WsMessage } from "$shared/dto/ws-message";
 import { env } from "../../env";
 import { db } from "../../db";
@@ -53,8 +53,8 @@ async function broadcastVoiceUpdate(roomId: string) {
         const emptyState: DtoVoiceRoom = {
             roomId,
             sid: "",
-            participants: [],
-            participantCount: 0,
+            users: [],
+            userCount: 0,
         };
         const wsMessage: WsMessage = {
             id: crypto.randomUUID(),
@@ -68,8 +68,8 @@ async function broadcastVoiceUpdate(roomId: string) {
         return;
     }
 
-    // Look up user names and avatars for each participant
-    const userIds = state.participants.map((p) => p.userId);
+    // Look up user names and avatars for each user
+    const userIds = state.users.map((u) => u.userId);
     const userMap = new Map<string, { name: string | null; image: string | null }>();
     if (userIds.length > 0) {
         const users = await db
@@ -83,12 +83,12 @@ async function broadcastVoiceUpdate(roomId: string) {
 
     const enrichedState: DtoVoiceRoom = {
         ...state,
-        participants: state.participants.map((p) => {
-            const u = userMap.get(p.userId);
+        users: state.users.map((user) => {
+            const u = userMap.get(user.userId);
             return {
-                ...p,
-                name: u?.name ?? p.name,
-                avatarUrl: u?.image ?? p.avatarUrl,
+                ...user,
+                name: u?.name ?? user.name,
+                avatarUrl: u?.image ?? user.avatarUrl,
             };
         }),
     };

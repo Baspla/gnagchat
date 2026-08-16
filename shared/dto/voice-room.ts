@@ -7,19 +7,24 @@ export const DtoVoiceTrackSchema = t.Object({
 });
 export type DtoVoiceTrack = typeof DtoVoiceTrackSchema.static;
 
-export const DtoVoiceParticipantSchema = t.Object({
+export const DtoVoiceDeviceSchema = t.Object({
+    identity: t.String(), // "userId:deviceId"
+    tracks: t.Array(DtoVoiceTrackSchema),
+});
+export type DtoVoiceDevice = typeof DtoVoiceDeviceSchema.static;
+
+export const DtoVoiceUserSchema = t.Object({
     userId: t.String(),
     name: t.String(),
     avatarUrl: t.Optional(t.Nullable(t.String())),
-    identity: t.String(),
-    tracks: t.Array(DtoVoiceTrackSchema),
+    devices: t.Array(DtoVoiceDeviceSchema),
 });
-export type DtoVoiceParticipant = typeof DtoVoiceParticipantSchema.static;
+export type DtoVoiceUser = typeof DtoVoiceUserSchema.static;
 
 export const DtoVoiceRoomSchema = t.Object({
     roomId: t.String(),
     sid: t.String(),
-    participants: t.Array(DtoVoiceParticipantSchema),
-    participantCount: t.Number(),
+    users: t.Array(DtoVoiceUserSchema),
+    userCount: t.Number(),
 });
 export type DtoVoiceRoom = typeof DtoVoiceRoomSchema.static;

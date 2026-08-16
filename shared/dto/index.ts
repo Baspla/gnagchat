@@ -2,8 +2,8 @@ export { DtoChatMessageSchema, DtoUserSchema, DtoEmojiSchema, DtoReactionSchema 
 export type { DtoChatMessage, DtoUser, DtoEmoji, DtoReaction } from "./chat";
 export { DtoChannelSchema, DtoRoomSchema } from "./chat";
 export type { DtoChannel, DtoRoom } from "./chat";
-export { DtoVoiceRoomSchema, DtoVoiceParticipantSchema, DtoVoiceTrackSchema } from "./voice-room";
-export type { DtoVoiceRoom, DtoVoiceParticipant, DtoVoiceTrack } from "./voice-room";
+export { DtoVoiceRoomSchema, DtoVoiceUserSchema, DtoVoiceDeviceSchema, DtoVoiceTrackSchema } from "./voice-room";
+export type { DtoVoiceRoom, DtoVoiceUser, DtoVoiceDevice, DtoVoiceTrack } from "./voice-room";
 export {
     WsMessageSchema, WsEventSchema,
     ChannelCreatePayloadSchema, ChannelUpdatePayloadSchema, ChannelDeletePayloadSchema,
