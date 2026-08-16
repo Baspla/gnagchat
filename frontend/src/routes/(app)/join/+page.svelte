@@ -8,7 +8,7 @@
   const logger = createLogger("joincall");
 
   onMount(async () => {
-    const roomId = page.url.searchParams.get("roomid");
+    const roomId = page.url.searchParams.get("id");
     if (!roomId) {
       logger.warn("no roomid provided, redirecting to /");
       goto("/");
