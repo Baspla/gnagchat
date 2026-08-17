@@ -1,4 +1,4 @@
-import { eq, and, gt, desc, inArray } from 'drizzle-orm';
+import { eq, and, or, gt, lt, desc, inArray } from 'drizzle-orm';
 import { db } from '../../db';
 import { message, roomReadState, room, channelMetadata, dmMetadata} from './schema';
 import type { Message } from './schema';
@@ -126,14 +126,29 @@ export class ChatService {
      * Fetches historical messages after validating room access.
      * Scoped as: ...AsUser
      */
-    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50) {
+    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50, before?: string, beforeId?: string) {
         // 1. Validate access first
         await this.canViewRoomAsUser(userId, roomId);
 
         // 2. Fetch history
+        const beforeDate = before ? new Date(before) : undefined;
+        if (before && Number.isNaN(beforeDate?.getTime())) {
+            throw new BadRequestError('Invalid history cursor');
+        }
+
         const messages = await db.query.message.findMany({
-            where: eq(message.roomId, roomId),
-            orderBy: [desc(message.createdAt)],
+            where: beforeDate
+                ? and(
+                    eq(message.roomId, roomId),
+                    beforeId
+                        ? or(
+                            lt(message.createdAt, beforeDate),
+                            and(eq(message.createdAt, beforeDate), lt(message.id, beforeId)),
+                        )
+                        : lt(message.createdAt, beforeDate),
+                )
+                : eq(message.roomId, roomId),
+            orderBy: [desc(message.createdAt), desc(message.id)],
             limit,
         });
         return this.transformMessagesToDto(messages);

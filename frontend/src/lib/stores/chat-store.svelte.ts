@@ -11,8 +11,8 @@ import type {
     MessageReactionRemoveAllPayload,
     MessageReactionRemoveEmojiPayload,
 } from "$shared/dto";
+import { page } from "$app/state";
 import { SvelteMap, SvelteSet } from "svelte/reactivity";
-import { authClient } from "$lib/auth-client";
 import { createLogger } from "$lib/logger";
 import { getErrorMessage } from "$lib/errors";
 
@@ -21,6 +21,10 @@ const logger = createLogger("chat-store");
 // ── Reactive state ──────────────────────────────────────────────────────
 
 const rooms = $state(new SvelteMap<string, SvelteMap<string, DtoChatMessage>>());
+const hasMoreHistory = $state(new SvelteMap<string, boolean>());
+const historyCursors = $state(new SvelteMap<string, { before: string; beforeId: string }>());
+const historyLoading = new Set<string>();
+const HISTORY_PAGE_SIZE = 50;
 
 // ── Internal helpers ────────────────────────────────────────────────────
 
@@ -33,15 +37,25 @@ function ensureRoom(roomId: string): SvelteMap<string, DtoChatMessage> {
     return messages;
 }
 
+function normalizeMessage(message: DtoChatMessage): DtoChatMessage {
+    return {
+        ...message,
+        createdAt: message.createdAt instanceof Date ? message.createdAt : new Date(message.createdAt),
+        editedAt: message.editedAt
+            ? message.editedAt instanceof Date ? message.editedAt : new Date(message.editedAt)
+            : message.editedAt,
+    };
+}
 
-const session = authClient.useSession();
-const user = $derived(session.get().data?.user ?? null);
+
+const user = $derived(page.data.user ?? null);
 
 /**
  * Insert or replace a message in a room, deduplicating by `id` and `nonce`.
  * Used both by the REST `sendMessage` response and the WS `message_create` event.
  */
 function upsertMessage(roomId: string, incoming: DtoChatMessage): void {
+    incoming = normalizeMessage(incoming);
     const messages = ensureRoom(roomId);
 
     // Replace by exact ID match (e.g. WS event replacing a stub)
@@ -85,18 +99,61 @@ export const chatStore = {
     async loadHistory(roomId: string): Promise<void> {
         logger.debug("loading history", { roomId });
         const res = await api.chat.rooms({ roomId }).history.get({
-            query: { limit: 50 },
+            query: { limit: HISTORY_PAGE_SIZE },
         });
 
         if (res.data && Array.isArray(res.data)) {
             logger.debug("loaded messages", { roomId, count: res.data.length });
             const messageMap = new SvelteMap<string, DtoChatMessage>();
-            for (const msg of res.data) {
+            for (const rawMessage of res.data) {
+                const msg = normalizeMessage(rawMessage);
                 messageMap.set(msg.id, msg);
             }
             rooms.set(roomId, messageMap);
+            hasMoreHistory.set(roomId, res.data.length === HISTORY_PAGE_SIZE);
+            const oldest = res.data.at(-1);
+            if (oldest) {
+                historyCursors.set(roomId, {
+                    before: oldest.createdAt.toISOString(),
+                    beforeId: oldest.id,
+                });
+            }
         } else if (res.error) {
             logger.error("failed to load history", { roomId, error: getErrorMessage(res.error) });
+        }
+    },
+
+    /** Load older messages without replacing the currently visible history. */
+    async loadOlderMessages(roomId: string): Promise<boolean> {
+        if (historyLoading.has(roomId) || hasMoreHistory.get(roomId) === false) return false;
+
+        const cursor = historyCursors.get(roomId);
+        if (!cursor) return false;
+
+        historyLoading.add(roomId);
+        try {
+            const res = await api.chat.rooms({ roomId }).history.get({
+                query: { limit: HISTORY_PAGE_SIZE, ...cursor },
+            });
+            if (!res.data || !Array.isArray(res.data)) return false;
+
+            const messages = ensureRoom(roomId);
+            for (const rawMessage of res.data) {
+                const message = normalizeMessage(rawMessage);
+                messages.set(message.id, message);
+            }
+            const more = res.data.length === HISTORY_PAGE_SIZE;
+            hasMoreHistory.set(roomId, more);
+            const oldest = res.data.at(-1);
+            if (oldest) {
+                historyCursors.set(roomId, {
+                    before: oldest.createdAt.toISOString(),
+                    beforeId: oldest.id,
+                });
+            }
+            return more;
+        } finally {
+            historyLoading.delete(roomId);
         }
     },
 

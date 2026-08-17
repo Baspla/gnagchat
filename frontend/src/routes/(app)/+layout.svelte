@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { authClient } from "$lib/auth-client";
-  import type { LayoutData } from "./$types";
+  import { page } from "$app/state";
   import VoiceProvider from "$lib/components/voice/VoiceProvider.svelte";
   import GatewayProvider from "$lib/components/gateway/GatewayProvider.svelte";
   import { chatStore } from "$lib/stores/chat-store.svelte";
@@ -8,12 +7,10 @@
     import ChatStoreLifecycle from "$lib/components/lifecycles/ChatStoreLifecycle.svelte";
 
   let {
-    data,
     children,
-  }: { data: LayoutData; children: import("svelte").Snippet } = $props();
+  }: { children: import("svelte").Snippet } = $props();
 
-  const session = authClient.useSession();
-  const user = $derived($session.data?.user ?? data.user ?? null);
+  const user = $derived(page.data.user ?? null);
 </script>
 
 {#if user}

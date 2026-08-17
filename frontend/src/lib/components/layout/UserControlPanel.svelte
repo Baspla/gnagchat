@@ -3,7 +3,6 @@
     import { attachTrack } from "$lib/livekit.svelte";
     import { ConnectionState } from "livekit-client";
     import { getVoiceRoom } from "$lib/voice/voice-context.svelte";
-    import type { LayoutData } from "../../../routes/(app)/$types";
     import { page } from "$app/state";
     import Lightswitch from "../Lightswitch.svelte";
     import { createLogger } from "$lib/logger";
@@ -21,8 +20,7 @@
     const logger = createLogger("user-control-panel");
     const manager = getVoiceRoom();
 
-    const session = authClient.useSession();
-    const user = $derived($session.data?.user ?? null);
+    const user = $derived(page.data.user ?? null);
 
     async function logout() {
         await authClient.signOut();

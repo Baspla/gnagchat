@@ -36,5 +36,6 @@ export const env = {
     CENTRIFUGO_URL: readEnv('GNAGCHAT_CENTRIFUGO_URL') ?? 'http://localhost:8000',
     CENTRIFUGO_SECRET: readEnv('GNAGCHAT_CENTRIFUGO_JWT_SECRET') ?? 'default_secret',
     CENTRIFUGO_API_KEY: readEnv('GNAGCHAT_CENTRIFUGO_API_KEY') ?? 'default_http_api_key',
+    DISCORD_WEBHOOK_URL: readEnv('GNAGCHAT_DISCORD_WEBHOOK_URL') ?? '',
     LOG_LEVEL: readEnv('GNAGCHAT_LOG_LEVEL') ?? 'info',
 };

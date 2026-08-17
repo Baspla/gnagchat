@@ -49,13 +49,15 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
     })
     .get('/rooms/:roomId/history', async ({ user, params, query, chatService }) => {
         const limit = query.limit ? Number(query.limit) : 50;
-        return await chatService.getHistoryAsUser(user.id, params.roomId, limit);
+        return await chatService.getHistoryAsUser(user.id, params.roomId, limit, query.before, query.beforeId);
     }, {
         params: t.Object({
             roomId: t.String()
         }),
         query: t.Object({
-            limit: t.Optional(t.Numeric())
+            limit: t.Optional(t.Numeric()),
+            before: t.Optional(t.String())
+            ,beforeId: t.Optional(t.String())
         }),
         auth: true
     })

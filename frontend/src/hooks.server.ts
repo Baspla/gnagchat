@@ -1,5 +1,6 @@
 import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { getConfiguredLevel } from '$lib/logger';
 
 type SessionResponse = {
 	session?: App.Locals['session'];
@@ -47,3 +48,21 @@ export const handleError: HandleServerError = ({ error, event, status }) => {
 		message: 'An unexpected error occurred',
 	};
 };
+
+if (getConfiguredLevel() === "debug") {
+	console.log("[ssr-fetch] logger active");
+	const originalFetch = globalThis.fetch;
+
+	globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+		const ssr = (typeof window === 'undefined');
+		const prefix = ssr ? '[ssr-fetch]' : '[client-fetch]';
+		if (input instanceof URL) {
+			console.log(`${prefix} URL ${init?.method ?? 'GET'} ${input.toString()}`);
+		} else if (input instanceof Request) {
+			console.log(`${prefix} Request ${input.method} ${input.url}`);
+		} else {
+			console.log(`${prefix} Unknown input type: ${typeof input}`);
+		}
+		return originalFetch(input, init);
+	}
+}

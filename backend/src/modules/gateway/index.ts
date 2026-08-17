@@ -14,20 +14,6 @@ export const gatewayModule = new Elysia({ prefix: '/gateway', name: Modules.GATE
             deviceId: t.String()
         }),
         auth: true
-    })
-    .get("/test", async ({ user }) => {
-        const message: WsMessage = {
-            id: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            payload: {
-                type: "system",
-                data: { message: `Test message for user ${user.id}` },
-            },
-        };
-        await broadcastMessage([`user:${user.id}`], message);
-        return { message: `Test message sent to user ${user.id}`, messageid: message.id };
-    }, {
-        auth: true
     });
 
 

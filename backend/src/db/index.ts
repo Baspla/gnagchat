@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/bun-sqlite';
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator';
 import * as schema from './schema';
-//ts-ignore-next-line
+// @ts-ignore Bun provides the `bun:sqlite` module at runtime.
 import { Database } from 'bun:sqlite';
 import { createLogger } from '../lib/logger';
 

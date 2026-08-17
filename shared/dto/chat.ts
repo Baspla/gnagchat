@@ -38,7 +38,7 @@ export const DtoReactionSchema = t.Object({
     count: t.Number(),
 });
 
-export const DtoChatMessageSchema = t.Object({
+const BaseChatMessage = {
     id: t.String(),
     roomId: t.String(),
     author: DtoUserSchema,
@@ -48,13 +48,20 @@ export const DtoChatMessageSchema = t.Object({
     mentions: t.Optional(t.Nullable(t.Array(DtoUserSchema))),
     emojis: t.Optional(t.Nullable(t.Array(DtoEmojiSchema))),
     //mention_roles
+    //files
     reactions: t.Optional(t.Nullable(t.Array(DtoReactionSchema))),
     nonce: t.String(),
     pinned: t.Boolean(),
+};
+
+export const DtoTextChatMessage = t.Object({
+    ...BaseChatMessage,
     type: t.Literal("text" as const),
 });
 
+export const DtoChatMessageSchema = t.Union([DtoTextChatMessage])
 export const DtoRoomSchema = t.Union([DtoChannelSchema, DtoDMSchema]);
+
 export type DtoUser = typeof DtoUserSchema.static;
 export type DtoEmoji = typeof DtoEmojiSchema.static;
 export type DtoReaction = typeof DtoReactionSchema.static;

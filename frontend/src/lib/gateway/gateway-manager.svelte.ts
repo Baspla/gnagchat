@@ -4,6 +4,7 @@ import { api } from "$lib/api";
 import type { WsEvent, WsMessage } from "$shared/dto/ws-message";
 import { Centrifuge, type PublicationContext } from "centrifuge";
 import { createLogger, getConfiguredLevel } from "$lib/logger";
+import { toaster } from "$lib/toaster";
 
 const logger = createLogger("gateway");
 
@@ -32,8 +33,9 @@ export class GatewayManager {
             env.PUBLIC_GNAGCHAT_CENTRIFUGO_WS_ENDPOINT || "http://localhost:8000",
             {
                 getToken: this.getToken,
+                maxReconnectDelay: 10000, // default is 2000
                 // Only enable Centrifuge debug logging when our log level is debug
-                debug: getConfiguredLevel() === "debug",
+                //debug: getConfiguredLevel() === "debug",
             },
         ),
     );
@@ -82,7 +84,14 @@ export class GatewayManager {
 
     connect() {
         logger.info("connecting to Centrifugo");
-        this.centrifuge.connect();
+        this.centrifuge.on("error", (context) => {
+            logger.error(context.error.message)
+            if(context.error.message = "transport closed"){
+                toaster.error({
+                    title: "Error connecting to Realtime Messaging Server",
+                })
+            }
+        });
         this.centrifuge.on("connected", (context) => {
             logger.info("Centrifugo connected");
             if (!this.userId) {
@@ -105,6 +114,7 @@ export class GatewayManager {
         this.centrifuge.on("disconnected", (context) => {
             logger.info("Centrifugo disconnected");
         });
+        this.centrifuge.connect();
     }
 
     private handleWsMessage(msg: WsMessage) {

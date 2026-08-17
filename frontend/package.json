@@ -14,9 +14,12 @@
     "@elysiajs/eden": "^1.4.9",
     "@gnagchat/shared": "workspace:*",
     "@lucide/svelte": "^1.31.0",
+    "@tanstack/svelte-virtual": "^3.13.35",
     "better-auth": "^1.6.23",
     "centrifuge": "^5.7.0",
-    "livekit-client": "^2.21.0"
+    "dayjs": "^1.11.23",
+    "livekit-client": "^2.21.0",
+    "svelte-time": "^2.3.1"
   },
   "devDependencies": {
     "@skeletonlabs/skeleton": "^5.0.0",

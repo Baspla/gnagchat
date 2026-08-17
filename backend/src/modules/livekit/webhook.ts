@@ -1,4 +1,4 @@
-import { WebhookReceiver } from "livekit-server-sdk";
+import { WebhookEvent, WebhookReceiver } from "livekit-server-sdk";
 import { voiceStateStore } from "./voice-state";
 import { broadcastMessage } from "../gateway/service";
 import type { DtoVoiceRoom, DtoVoiceUser } from "$shared/dto/voice-room";
@@ -142,6 +142,7 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
                 const name = event.participant?.name ?? identity;
                 const avatarUrl = event.participant?.attributes?.image ?? null;
                 voiceStateStore.participantJoined(roomName, identity, name, avatarUrl);
+                notifyJoinDiscordWebhook(event);
                 await broadcastVoiceUpdate(roomName);
                 break;
             }
@@ -195,4 +196,27 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
         logger.error('webhook handler error', { error: String(error), stack: error?.stack });
         return { status: 500, body: "Internal Server Error" };
     }
+}
+
+function notifyJoinDiscordWebhook(event: WebhookEvent) {
+    if (!env.DISCORD_WEBHOOK_URL) {
+        return;
+    }
+    fetch(env.DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            username: "Voice Chat",
+            avatar_url: event.participant?.attributes?.image ?? undefined,
+            content: `event.participant?.name ${event.participant?.name ?? ""}
+            event.room?.name ${event.room?.name ?? ""}
+            event.room?.sid ${event.room?.sid ?? ""}
+            event.participant?.identity ${event.participant?.identity ?? ""}
+            event.participant?.sid ${event.participant?.sid ?? ""}`,
+        }),
+    }).catch((err) => {
+        logger.error('Failed to send Discord webhook', { error: String(err), stack: err?.stack });
+    });
 }
