@@ -25,7 +25,7 @@
 <div class="m-4 overflow-y-auto max-h-full">
     {#if manager.state === ConnectionState.Disconnected}
         <button
-            onclick={() => manager.joinRoom("default-room")}
+            onclick={() => manager.joinRoom("default-room","Default Room")}
             class="btn bg-indigo-500 hover:bg-indigo-700 text-white p-2 rounded"
         >
             Connect

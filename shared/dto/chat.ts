@@ -1,22 +1,31 @@
 import { t } from "elysia";
 import { DtoVoiceRoomSchema } from "./voice-room";
 
-export const DtoRoomSchema = t.Object({
-    id: t.String(),
-});
-
-export const DtoChannelSchema = t.Object({
-    name: t.String(),
-    roomId: t.String(),
-    createdAt: t.Date(),
-    voiceState: t.Optional(t.Nullable(DtoVoiceRoomSchema)),
-});
-
 export const DtoUserSchema = t.Object({
     id: t.String(),
     displayName: t.Optional(t.Nullable(t.String())),
     avatarUrl: t.Optional(t.Nullable(t.String())),
 });
+
+const BaseRoomProperites = {
+    roomId: t.String(),
+    createdAt: t.Date(),
+    voiceState: t.Optional(t.Nullable(DtoVoiceRoomSchema)),
+    displayName: t.Optional(t.Nullable(t.String())),
+};
+
+export const DtoChannelSchema = t.Object({
+    ...BaseRoomProperites,
+    type: t.Literal("channel" as const),
+    name: t.String(),
+});
+
+export const DtoDMSchema = t.Object({
+    ...BaseRoomProperites,
+    type: t.Literal("dm" as const),
+    recipient: DtoUserSchema,
+});
+
 
 export const DtoEmojiSchema = t.Object({
     id: t.String(),
@@ -45,9 +54,11 @@ export const DtoChatMessageSchema = t.Object({
     type: t.Literal("text" as const),
 });
 
+export const DtoRoomSchema = t.Union([DtoChannelSchema, DtoDMSchema]);
 export type DtoUser = typeof DtoUserSchema.static;
 export type DtoEmoji = typeof DtoEmojiSchema.static;
 export type DtoReaction = typeof DtoReactionSchema.static;
 export type DtoChatMessage = typeof DtoChatMessageSchema.static;
 export type DtoRoom = typeof DtoRoomSchema.static;
 export type DtoChannel = typeof DtoChannelSchema.static;
+export type DtoDM = typeof DtoDMSchema.static;

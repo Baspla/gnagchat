@@ -22,7 +22,9 @@ export const DtoVoiceUserSchema = t.Object({
 export type DtoVoiceUser = typeof DtoVoiceUserSchema.static;
 
 export const DtoVoiceRoomSchema = t.Object({
+    // The unique identifier for the voice room
     roomId: t.String(),
+    // The unique identifier for the voice room session
     sid: t.String(),
     users: t.Array(DtoVoiceUserSchema),
     userCount: t.Number(),

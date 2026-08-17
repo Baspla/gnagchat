@@ -1,6 +1,7 @@
 import { ReactiveRoom } from "$lib/livekit.svelte";
 import { ConnectionState } from "livekit-client";
 import { createLogger } from "$lib/logger";
+import { api } from "$lib/api";
 
 const logger = createLogger("voice-room-manager");
 
@@ -18,14 +19,14 @@ export class VoiceRoomManager {
         disconnectOnPageLeave: false,
     }));
 
-    currentRoomName = $state<string>("");
+    currentRoomId = $state<string>("");
     currentRoomDisplayName = $state<string>("");
 
     voiceState = $state<VoiceState>(VoiceState.Unmuted);
 
     // Derived state for convenience
     get roomDisplayName() {
-        return this.currentRoomDisplayName || this.currentRoomName;
+        return this.currentRoomDisplayName || this.currentRoomId;
     }
 
     get state() {
@@ -65,20 +66,20 @@ export class VoiceRoomManager {
             || this.voiceState === VoiceState.Muted;
     }
 
-    async joinRoom(roomName: string, displayName?: string) {
-        if (this.currentRoomName === roomName && this.isConnected) {
+    async joinRoom(roomId: string, displayName: string) {
+        if (this.currentRoomId === roomId && this.isConnected) {
             return; // Already in this room
         }
 
         // If already connected to a different room, disconnect first
-        if (this.isConnected && this.currentRoomName !== roomName) {
+        if (this.isConnected && this.currentRoomId !== roomId) {
             await this.leaveRoom();
         }
 
-        this.currentRoomName = roomName;
-        this.currentRoomDisplayName = displayName ?? roomName;
-        await this.room.prepareConnection(roomName);
-        await this.room.connect(roomName);
+        this.currentRoomDisplayName = displayName;
+        this.currentRoomId = roomId;
+        await this.room.prepareConnection(roomId);
+        await this.room.connect(roomId);
         await this.syncAudioState();
     }
 
@@ -86,12 +87,8 @@ export class VoiceRoomManager {
         if (this.room.state !== ConnectionState.Disconnected) {
             await this.room.disconnect();
         }
-        this.currentRoomName = "";
+        this.currentRoomId = "";
         this.currentRoomDisplayName = "";
-    }
-
-    async switchRoom(roomName: string) {
-        await this.joinRoom(roomName);
     }
 
     async toggleMute() {

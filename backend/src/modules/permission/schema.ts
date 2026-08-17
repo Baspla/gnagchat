@@ -1,7 +1,7 @@
 // db/schema/rbac.ts
 import { sqliteTable, text, primaryKey } from 'drizzle-orm/sqlite-core';
 import { user } from '../user/schema';
-import { channel } from '../chat/schema';
+import { channelMetadata } from '../chat/schema';
 import type { Permission } from '$shared/permissions';
 
 export const role = sqliteTable('role', {
@@ -23,7 +23,7 @@ export const userRole = sqliteTable('user_role', {
 
 // Channel Overrides using the exact same JSON array approach
 export const channelRoleOverride = sqliteTable('channel_role_override', {
-    channelId: text('channel_id').references(() => channel.roomId, { onDelete: 'cascade' }).notNull(),
+    channelId: text('channel_id').references(() => channelMetadata.roomId, { onDelete: 'cascade' }).notNull(),
     roleId: text('role_id').references(() => role.id, { onDelete: 'cascade' }).notNull(),
     
     // Explicitly allowed or denied permissions for this role in this channel

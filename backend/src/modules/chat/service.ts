@@ -1,14 +1,13 @@
-import { eq, and, gt, desc, or, inArray } from 'drizzle-orm';
+import { eq, and, gt, desc, inArray } from 'drizzle-orm';
 import { db } from '../../db';
-import { message, roomReadState, room, channel, directMessage} from './schema';
+import { message, roomReadState, room, channelMetadata, dmMetadata} from './schema';
 import type { Message } from './schema';
 import { PermissionService } from '../permission/service';
 import { user } from '../user/schema';
 import type { User } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
-import type { DtoUser, DtoChatMessage, DtoChannel } from '$shared/dto/chat';
+import type { DtoUser, DtoChatMessage, DtoChannel, DtoRoom } from '$shared/dto/chat';
 import type { WsMessage } from '$shared/dto/ws-message';
-import type { DtoVoiceRoom } from '$shared/dto/voice-room';
 import { broadcastMessage } from '../gateway/service';
 import { voiceStateStore } from '../livekit/voice-state';
 import { createLogger } from '../../lib/logger';
@@ -97,11 +96,6 @@ export class ChatService {
             content,
         }).returning();
 
-        // 4. Get User info for DTO
-        const userRecord: User | undefined = await db.query.user.findFirst({
-            where: eq(user.id, userId)
-        });
-
         const dto = await this.transformMessageToDto(savedMessage, nonce);
         logger.debug('saved message dto', { roomId, messageId: savedMessage.id });
 
@@ -169,8 +163,8 @@ export class ChatService {
             return memberIds;
 
         } else if (targetRoom.type === 'dm') {
-            const dm = await db.query.directMessage.findFirst({
-                where: eq(directMessage.roomId, roomId)
+            const dm = await db.query.dmMetadata.findFirst({
+                where: eq(dmMetadata.roomId, roomId)
             });
 
             if (dm) {
@@ -242,7 +236,7 @@ export class ChatService {
             createdAt: new Date(),
         }).returning();
 
-        await db.insert(channel).values({
+        await db.insert(channelMetadata).values({
             roomId: newRoom.id,
             name: trimmedName,
         });
@@ -255,6 +249,7 @@ export class ChatService {
             roomId: newRoom.id,
             name: trimmedName,
             createdAt: newRoom.createdAt,
+            type: 'channel',
         };
     }
 
@@ -293,38 +288,157 @@ export class ChatService {
         return { success: true };
     }
 
+
+    static async getRoomAsUser(userId: string, roomId: string): Promise<DtoRoom> {
+        const [result] = await db
+            .select({
+                room,
+                channel: channelMetadata,
+                dm: dmMetadata,
+            })
+            .from(room)
+            .leftJoin(channelMetadata, eq(channelMetadata.roomId, room.id))
+            .leftJoin(dmMetadata, eq(dmMetadata.roomId, room.id))
+            .where(eq(room.id, roomId));
+
+        if (!result) {
+            throw new NotFoundError('Room not found');
+        }
+
+        const { room: dbRoom, channel, dm } = result;
+        const canView = dbRoom.type === 'channel'
+            ? await PermissionService.hasPermissionInChannel(userId, dbRoom.id, 'view_channel')
+            : !!dm && (dm.userAId === userId || dm.userBId === userId);
+
+        if (!canView) {
+            throw new ForbiddenError(
+                dbRoom.type === 'channel'
+                    ? 'Insufficient permissions to view this channel'
+                    : 'Not a participant of this direct message'
+            );
+        }
+
+        const voiceState = voiceStateStore.get(dbRoom.id) ?? null;
+
+        if (dbRoom.type === 'channel') {
+            if (!channel) {
+                throw new InternalError('Channel metadata not found');
+            }
+
+            return {
+                roomId: dbRoom.id,
+                name: channel.name,
+                createdAt: dbRoom.createdAt,
+                voiceState,
+                type: 'channel',
+            };
+        }
+
+        if (!dm) {
+            throw new InternalError('DM metadata not found');
+        }
+
+        const recipientId = dm.userAId === userId ? dm.userBId : dm.userAId;
+        const recipient = await db.query.user.findFirst({
+            where: eq(user.id, recipientId),
+        });
+
+        if (!recipient) {
+            throw new InternalError('DM recipient not found');
+        }
+
+        return {
+            roomId: dbRoom.id,
+            createdAt: dbRoom.createdAt,
+            voiceState,
+            type: 'dm',
+            recipient: this.transformUserToDto(recipient),
+        };
+    }
+
+    /**
+     * Returns all rooms the user has permission to view, ordered by creation date.
+     * Includes the room type so callers can filter by subtype.
+     */
+    static async getAccessibleRoomsAsUser(userId: string): Promise<DtoRoom[]> {
+        const allRooms = await db
+            .select({
+                room,
+                channel: channelMetadata,
+                dm: dmMetadata,
+            })
+            .from(room)
+            .leftJoin(channelMetadata, eq(channelMetadata.roomId, room.id))
+            .leftJoin(dmMetadata, eq(dmMetadata.roomId, room.id))
+            .orderBy(room.createdAt);
+
+        const accessible = [];
+
+        for (const result of allRooms) {
+            const canView = result.room.type === 'channel'
+                ? await PermissionService.hasPermissionInChannel(userId, result.room.id, 'view_channel')
+                : !!result.dm && (result.dm.userAId === userId || result.dm.userBId === userId);
+            if (canView) {
+                accessible.push(result);
+            }
+        }
+
+        const recipientIds = [...new Set(accessible
+            .filter((result) => result.room.type === 'dm' && result.dm)
+            .map((result) => result.dm!.userAId === userId ? result.dm!.userBId : result.dm!.userAId))];
+        const recipients = recipientIds.length === 0
+            ? []
+            : await db.select().from(user).where(inArray(user.id, recipientIds));
+        const recipientMap = new Map(recipients.map((recipient) => [recipient.id, recipient]));
+
+        const roomIds = accessible.map((result) => result.room.id);
+        const voiceStates = voiceStateStore.getForRoomIds(roomIds);
+        const voiceStateMap = new Map(voiceStates.map((vs) => [vs.roomId, vs.state]));
+
+        return accessible.flatMap((result): DtoRoom[] => {
+            const { room: dbRoom, channel, dm } = result;
+            const voiceState = voiceStateMap.get(dbRoom.id) ?? null;
+
+            if (dbRoom.type === 'channel') {
+                if (!channel) {
+                    throw new InternalError('Channel metadata not found');
+                }
+
+                return [{
+                    roomId: dbRoom.id,
+                    name: channel.name,
+                    createdAt: dbRoom.createdAt,
+                    voiceState,
+                    type: 'channel',
+                }];
+            }
+
+            if (!dm) {
+                throw new InternalError('DM metadata not found');
+            }
+
+            const recipientId = dm.userAId === userId ? dm.userBId : dm.userAId;
+            const recipient = recipientMap.get(recipientId);
+            if (!recipient) {
+                throw new InternalError('DM recipient not found');
+            }
+
+            return [{
+                roomId: dbRoom.id,
+                createdAt: dbRoom.createdAt,
+                voiceState,
+                type: 'dm',
+                recipient: this.transformUserToDto(recipient),
+            }];
+        });
+    }
+
     /**
      * Returns all channels the user has permission to view, ordered by creation date.
      */
     static async getAccessibleChannelsAsUser(userId: string): Promise<DtoChannel[]> {
-        const allChannels = await db
-            .select({
-                roomId: channel.roomId,
-                name: channel.name,
-                createdAt: room.createdAt,
-            })
-            .from(channel)
-            .innerJoin(room, eq(channel.roomId, room.id))
-            .orderBy(room.createdAt);
-
-        const accessible: { roomId: string; name: string; createdAt: Date }[] = [];
-
-        for (const ch of allChannels) {
-            const canView = await this.canViewRoomAsUser(userId, ch.roomId);
-            if (canView) {
-                accessible.push(ch);
-            }
-        }
-
-        // Attach voice state from in-memory store
-        const roomIds = accessible.map((ch) => ch.roomId);
-        const voiceStates = voiceStateStore.getForRoomIds(roomIds);
-        const voiceStateMap = new Map(voiceStates.map((vs) => [vs.roomId, vs.state]));
-
-        return accessible.map((ch) => ({
-            ...ch,
-            voiceState: voiceStateMap.get(ch.roomId) ?? null,
-        }));
+        const accessibleRooms = await this.getAccessibleRoomsAsUser(userId);
+        return accessibleRooms.filter((room): room is DtoChannel => room.type === 'channel');
     }
 
     static async transformMessagesToDto(messages: Message[], nonce?: string): Promise<DtoChatMessage[]> {
@@ -379,4 +493,5 @@ export class ChatService {
             type: 'text',
         };
     }
+
 }

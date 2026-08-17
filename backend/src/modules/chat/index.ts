@@ -59,6 +59,14 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
         }),
         auth: true
     })
+    .get('/rooms/:roomId', async ({ user, params, chatService }) => {
+        return await chatService.getRoomAsUser(user.id, params.roomId);
+    }, {
+        params: t.Object({
+            roomId: t.String()
+        }),
+        auth: true
+    })
     .post('/rooms/:roomId/read', async ({ user, params, chatService }) => {
         await chatService.markRoomAsReadAsUser(user.id, params.roomId);
         return { success: true };

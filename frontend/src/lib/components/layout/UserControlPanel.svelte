@@ -50,7 +50,7 @@
     }
 
     async function copyInviteLink() {
-        const inviteUrl = `${page.url.origin}/joincall?roomid=${encodeURIComponent(manager.currentRoomName)}`;
+        const inviteUrl = `${page.url.origin}/join?id=${encodeURIComponent(manager.currentRoomId)}`;
         try {
             await navigator.clipboard.writeText(inviteUrl);
             toaster.success({

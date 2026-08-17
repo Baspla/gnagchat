@@ -1,3 +1,5 @@
+import { env } from "$env/dynamic/public";
+
 type LogLevel = "error" | "warn" | "info" | "debug";
 
 const LEVELS: Record<LogLevel, number> = {
@@ -9,14 +11,17 @@ const LEVELS: Record<LogLevel, number> = {
 
 export function getConfiguredLevel(): LogLevel {
     // Explicit env override takes precedence
-    const fromEnv = import.meta.env?.PUBLIC_GNAGCHAT_LOG_LEVEL as LogLevel | undefined;
+    const fromEnv = env?.PUBLIC_GNAGCHAT_LOG_LEVEL as LogLevel | undefined;
     if (fromEnv && LEVELS[fromEnv] !== undefined) {
+        console.log(`Using log level from env: ${fromEnv}`);
         return fromEnv;
     }
     // In dev mode default to info, otherwise warn
     if (typeof import.meta !== "undefined" && import.meta.env?.DEV) {
+        console.log("Using log level from dev mode: info");
         return "info";
     }
+    console.log("Using log level from default: warn");
     return "warn";
 }
 

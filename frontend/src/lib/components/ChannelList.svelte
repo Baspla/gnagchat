@@ -90,7 +90,7 @@
                     </div>
                 {/if}
             </button>
-            {#if manager.isConnected && manager.currentRoomName === channel.roomId}
+            {#if manager.isConnected && manager.currentRoomId === channel.roomId}
                 <button class="btn preset-filled-error-500 p-2 rounded" title="Disconnect from call" onclick={() => manager.leaveRoom()}>
                     <PhoneOff class="w-4 h-4" />
                 </button>
