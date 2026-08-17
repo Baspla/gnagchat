@@ -2,14 +2,13 @@
     import { chatStore } from "$lib/stores/chat-store.svelte";
     import type { DtoChannel } from "$shared/dto";
     import MessageList from "./MessageList.svelte";
+    import MessageInput from "./MessageInput.svelte";
 
     let {
         channel,
     }: {
         channel: DtoChannel;
     } = $props();
-
-    let inputValue = $state("");
 
     let messages = $derived(
         chatStore
@@ -23,13 +22,9 @@
         }
     });
 
-    function sendMessage() {
+    function sendMessage(content: string) {
         if (!channel.roomId) return;
-        chatStore.sendMessage(channel.roomId, inputValue).then((message) => {
-            if (message) {
-                inputValue = "";
-            }
-        });
+        return chatStore.sendMessage(channel.roomId, content);
     }
 </script>
 
@@ -42,15 +37,6 @@
     <div class="flex flex-col gap-2 grow min-h-0">
         <MessageList messages={messages} roomId={channel.roomId}></MessageList>
     </div>
-    <div class="flex gap-2 mt-2 mb-4 mx-4">
-        <input
-            type="text"
-            placeholder="Shitposte..."
-            class="w-full rounded p-2 input"
-            bind:value={inputValue}
-        />
-        <button class="btn preset-filled p-2 rounded" onclick={sendMessage}>
-            Senden
-        </button>
-    </div>
+    <MessageInput onSend={sendMessage} />
 </div>
+

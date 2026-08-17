@@ -19,7 +19,7 @@
 
 </script>
 
-<div class="flex flex-row gap-1 items-start">
+<div class="flex flex-row gap-2 items-start py-1">
     <img
         src={message.author.avatarUrl}
         alt="Avatar"
