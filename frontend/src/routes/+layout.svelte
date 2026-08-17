@@ -2,12 +2,11 @@
 	import { toaster } from '$lib/toaster';
 	import { Toast } from '@skeletonlabs/skeleton-svelte';
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
 </script>
 
-<svelte:head><link rel="icon" href={favicon} /></svelte:head>
+<svelte:head><link rel="icon" href="/favicon.svg" /></svelte:head>
 {@render children()}
 
 <Toast.Group {toaster}>
