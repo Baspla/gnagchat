@@ -211,7 +211,7 @@ function notifyJoinDiscordWebhook(event: WebhookEvent) {
         body: JSON.stringify({
             username: "Voice Chat",
             avatar_url: event.participant?.attributes?.image ?? undefined,
-            content: `**${event.participant?.name ?? ""}** ist einem [Gnag Chat Voicecall](https://${env.HOSTNAME}/join?id=${event.room?.name ?? ""}) beigetreten!`,
+            content: `**${event.participant?.name ?? ""}** ist einem [Gnag Chat Voicecall](${env.HOSTNAME}/join?id=${event.room?.name ?? ""}) beigetreten!`,
         }),
     }).catch((err) => {
         logger.error('Failed to send Discord webhook', { error: String(err), stack: err?.stack });
