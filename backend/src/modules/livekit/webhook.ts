@@ -202,6 +202,7 @@ function notifyJoinDiscordWebhook(event: WebhookEvent) {
     if (!env.DISCORD_WEBHOOK_URL) {
         return;
     }
+    logger.debug('Sending Discord webhook for participant_joined', { participant: event.participant?.identity, room: event.room?.name });
     fetch(env.DISCORD_WEBHOOK_URL, {
         method: "POST",
         headers: {
