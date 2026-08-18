@@ -25,6 +25,7 @@ export const env = {
     DATABASE_URL: requireEnv('GNAGCHAT_DATABASE_URL'),
     BETTER_AUTH_URL: readEnv('GNAGCHAT_BETTER_AUTH_URL') ?? 'http://localhost:5173',
     BETTER_AUTH_SECRET: readEnv('GNAGCHAT_BETTER_AUTH_SECRET') ?? '',
+    HOSTNAME: readEnv('GNAGCHAT_HOSTNAME') ?? 'http://localhost:5173',
     OAUTH_PROVIDER_ID: readEnv('GNAGCHAT_OAUTH_PROVIDER_ID') ?? 'generic-oauth',
     OAUTH_DISCOVERY_URL: oauthDiscoveryUrl,
     OAUTH_CLIENT_ID: oauthClientId,
