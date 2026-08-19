@@ -1,163 +1,160 @@
 <script lang="ts">
-    import { createVirtualizer, type SvelteVirtualizer } from "@tanstack/svelte-virtual";
+    import { createVirtualizer } from "@tanstack/svelte-virtual";
+    import { get } from "svelte/store";
     import type { DtoChatMessage } from "$shared/dto";
     import { chatStore } from "$lib/stores/chat-store.svelte";
     import ChatMessage from "./ChatMessage.svelte";
-    import DayDivider from "./DayDivider.svelte";
 
-    type MessageRow = { type: "message"; key: string; message: DtoChatMessage };
-    type DividerRow = { type: "divider"; key: string; timestamp: Date };
-    type Row = MessageRow | DividerRow;
-    type VirtualizerView = Pick<SvelteVirtualizer<HTMLElement, HTMLElement>, "getVirtualItems" | "getTotalSize" | "isAtEnd">;
+    let {
+        messages,
+        roomId,
+        initialLoading,
+    }: {
+        messages: DtoChatMessage[];
+        roomId: string;
+        initialLoading: boolean;
+    } = $props();
 
-    let { messages, roomId }: { messages: DtoChatMessage[]; roomId: string } = $props();
-    let scrollElement = $state<HTMLElement | null>(null);
-    let virtualizer = $state<SvelteVirtualizer<HTMLElement, HTMLElement> | null>(null);
-    let virtualItems = $state<ReturnType<SvelteVirtualizer<HTMLElement, HTMLElement>["getVirtualItems"]>>([]);
-    let totalSize = $state(0);
-    let atEnd = $state(true);
-    let loadingOlder = $state(false);
-    let olderHistoryExhausted = $state(false);
-    let topSentinel = $state<HTMLElement | null>(null);
-    let initialPositioningScheduled = false;
+    let parentRef = $state<HTMLDivElement | null>(null);
+    let hasScrolledToEnd = $state(false);
     let initialPositioned = $state(false);
-    let topLoadArmed = $state(true);
+    let loadingOlder = $state(false);
+    let hasMoreOlder = $state(true);
 
-    function updateVirtualizerView(instance: VirtualizerView): void {
-        virtualItems = instance.getVirtualItems();
-        totalSize = instance.getTotalSize();
-        atEnd = instance.isAtEnd(80);
+    // During a channel switch the core can briefly ask for a key from the
+    // previous range after the new array has been applied. Real messages
+    // always use their stable ID; the fallback is only for that transient
+    // out-of-range lookup.
+    const getMessageKey = (index: number) => messages[index]?.id ?? `stale-message-${index}`;
+
+    const virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+        count: 0,
+        getScrollElement: () => parentRef,
+        estimateSize: () => 72,
+        getItemKey: getMessageKey,
+        anchorTo: "end",
+        followOnAppend: true,
+        scrollEndThreshold: 80,
+        overscan: 6,
+    });
+
+    function measureElement(node: HTMLDivElement) {
+        $virtualizer.measureElement(node);
     }
 
-    function isSameDay(first: Date, second: Date): boolean {
-        return first.getFullYear() === second.getFullYear()
-            && first.getMonth() === second.getMonth()
-            && first.getDate() === second.getDate();
+    function jumpToLatest() {
+        $virtualizer.scrollToEnd({ behavior: "smooth" });
     }
 
-    function messageKey(message: DtoChatMessage): string {
-        return message.nonce || message.id;
-    }
+    async function loadOlderMessages() {
+        if (loadingOlder || !hasMoreOlder || messages.length === 0) return;
 
-    // Build the complete virtualized row model once per message-list update.
-    let rows = $derived.by<Row[]>(() => {
-        const result: Row[] = [];
-        for (const [index, message] of messages.entries()) {
-            if (index === 0 || !isSameDay(messages[index - 1]!.createdAt, message.createdAt)) {
-                result.push({ type: "divider", key: `divider-${message.createdAt.toISOString()}`, timestamp: message.createdAt });
-            }
-            result.push({ type: "message", key: messageKey(message), message });
+        loadingOlder = true;
+        try {
+            hasMoreOlder = await chatStore.loadOlder(roomId);
+        } finally {
+            loadingOlder = false;
         }
-        return result;
-    });
-
-    $effect(() => {
-        if (!scrollElement || virtualizer) return;
-        const store = createVirtualizer<HTMLElement, HTMLElement>({
-            count: rows.length,
-            getScrollElement: () => scrollElement,
-            estimateSize: (index) => rows[index]?.type === "divider" ? 40 : 72,
-            getItemKey: (index) => rows[index]?.key ?? index,
-            anchorTo: "end",
-            followOnAppend: true,
-            scrollEndThreshold: 80,
-            overscan: 6,
-            onChange: (instance) => updateVirtualizerView(instance),
-        });
-        return store.subscribe((instance) => {
-            virtualizer = instance;
-            updateVirtualizerView(instance);
-        });
-    });
-
-    $effect(() => {
-        if (!virtualizer) return;
-        virtualizer.setOptions({
-            count: rows.length,
-            getItemKey: (index) => rows[index]?.key ?? index,
-            estimateSize: (index) => rows[index]?.type === "divider" ? 40 : 72,
-            onChange: (instance) => updateVirtualizerView(instance),
-        });
-        updateVirtualizerView(virtualizer);
-    });
-
-    function measureElement(element: HTMLElement): void {
-        virtualizer?.measureElement(element);
     }
 
-    // ── IntersectionObserver sentinel for scroll-up loading ──────────
-    // anchorTo: 'end' + stable getItemKey handles scroll preservation
-    // automatically when older messages are prepended.
+    // Keep the virtualizer's item count and key resolver in sync with the
+    // oldest-first message array. TanStack Virtual preserves the keyed item
+    // position when older messages are prepended.
     $effect(() => {
-        if (!topSentinel || !initialPositioned || olderHistoryExhausted) return;
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (!entry.isIntersecting) {
-                    topLoadArmed = true;
-                    return;
-                }
-                if (!topLoadArmed || loadingOlder || olderHistoryExhausted) return;
-
-                topLoadArmed = false;
-                loadingOlder = true;
-
-                chatStore.loadOlder(roomId).then((hasMore) => {
-                    if (!hasMore) olderHistoryExhausted = true;
-                }).finally(() => {
-                    loadingOlder = false;
-                });
-            },
-            { root: scrollElement, threshold: 0 },
-        );
-        observer.observe(topSentinel);
-        return () => observer.disconnect();
+        const count = messages.length;
+        get(virtualizer).setOptions({
+            count,
+            getItemKey: getMessageKey,
+        });
     });
 
-    // Initial positioning — scroll to end exactly once.
-    //
-    // This effect also reacts to rows.length. Without the guard, prepending
-    // older history schedules another scrollToEnd and loses the user's place.
+    // A channel switch reuses this component instance. Reset only the
+    // channel-local pagination and initial-position state; the old virtual
+    // range may still be published for one update while the new array lands.
     $effect(() => {
-        if (!virtualizer || rows.length === 0 || initialPositioningScheduled) return;
+        roomId;
+        hasScrolledToEnd = false;
+        initialPositioned = false;
+        hasMoreOlder = true;
+    });
 
-        initialPositioningScheduled = true;
-        const frame = requestAnimationFrame(() => {
-            virtualizer?.scrollToEnd();
-            initialPositioned = true;
-        });
-        return () => cancelAnimationFrame(frame);
+    // Chat screens open at the newest message. Follow-on appends are handled
+    // by the virtualizer itself after this initial positioning.
+    $effect(() => {
+        if (!initialLoading && !hasScrolledToEnd && messages.length > 0 && parentRef) {
+            const targetRoomId = roomId;
+            hasScrolledToEnd = true;
+
+            // Dynamic message heights are measured as their virtual items
+            // mount. Re-align while those first measurements settle so the
+            // initial position is the true end, rather than the estimate.
+            const alignToEnd = (frame: number) => {
+                if (roomId !== targetRoomId || !parentRef || messages.length === 0) return;
+
+                get(virtualizer).scrollToEnd();
+                parentRef.scrollTop = parentRef.scrollHeight;
+                if (frame < 4) {
+                    requestAnimationFrame(() => alignToEnd(frame + 1));
+                } else {
+                    initialPositioned = true;
+                }
+            };
+
+            requestAnimationFrame(() => {
+                alignToEnd(0);
+            });
+        }
+    });
+
+    // Loading is intentionally kept outside the virtualizer: prepending to
+    // `messages` lets anchorTo:'end' retain the user's visible keyed message.
+    $effect(() => {
+        if (initialLoading) return;
+        const firstVirtualItem = $virtualizer.getVirtualItems()[0];
+        if (firstVirtualItem && firstVirtualItem.index <= 2) {
+            void loadOlderMessages();
+        }
     });
 </script>
 
-<div bind:this={scrollElement} class="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+<div class="relative min-h-0 flex-1">
+    <div
+        bind:this={parentRef}
+        class="h-full min-h-0 overflow-auto"
+        aria-label="Chat messages"
+    >
+        <div
+            class="relative w-full"
+            style:height={`${$virtualizer.getTotalSize()}px`}
+        >
+            {#each $virtualizer.getVirtualItems() as virtualItem (virtualItem.key)}
+                {#if messages[virtualItem.index]}
+                    <div
+                        use:measureElement
+                        data-index={virtualItem.index}
+                        class="absolute top-0 w-full"
+                        style:transform={`translateY(${virtualItem.start}px)`}
+                    >
+                        <ChatMessage message={messages[virtualItem.index]!} />
+                    </div>
+                {/if}
+            {/each}
+        </div>
+    </div>
+
+    {#if initialPositioned && !$virtualizer.isAtEnd()}
+        <button
+            type="button"
+            class="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-primary-500 px-4 py-2 text-sm font-medium text-white shadow-lg"
+            onclick={jumpToLatest}
+        >
+            Neueste Nachrichten
+        </button>
+    {/if}
+
     {#if loadingOlder}
-        <div class="pointer-events-none absolute inset-x-0 top-2 z-10 text-center text-sm text-surface-500">
+        <div class="pointer-events-none absolute left-0 right-0 top-2 text-center text-sm text-gray-500">
             Ältere Nachrichten werden geladen …
         </div>
-    {/if}
-    <div bind:this={topSentinel} class="h-px"></div>
-    <div class="relative w-full" style:height={`${totalSize}px`}>
-        {#each virtualItems as virtualItem (virtualItem.key)}
-            {@const row = rows[virtualItem.index]}
-            {#if row}
-                <div
-                    data-index={virtualItem.index}
-                    use:measureElement
-                    class="absolute left-0 top-0 w-full px-4"
-                    style:transform={`translateY(${virtualItem.start}px)`}
-                >
-                    {#if row.type === "divider"}
-                        <DayDivider timestamp={row.timestamp} />
-                    {:else}
-                        <ChatMessage message={row.message} />
-                    {/if}
-                </div>
-            {/if}
-        {/each}
-    </div>
-    {#if !atEnd && rows.length > 0}
-        <button class="btn preset-filled fixed bottom-20 right-8 z-20 rounded-full shadow-lg" onclick={() => virtualizer?.scrollToEnd({ behavior: "smooth" })}>
-            Zur neuesten Nachricht
-        </button>
     {/if}
 </div>
