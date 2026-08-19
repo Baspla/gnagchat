@@ -23,6 +23,7 @@ const logger = createLogger("chat-store");
 
 const rooms = $state(new SvelteMap<string, SvelteMap<string, DtoChatMessage>>());
 const nextCursors = $state(new SvelteMap<string, string | null>());
+const initialLoading = $state(new SvelteMap<string, boolean>());
 const loading = new Set<string>();
 const loaded = new Set<string>();
 const HISTORY_PAGE_SIZE = 50;
@@ -94,11 +95,15 @@ async function loadPage(roomId: string, cursor?: string): Promise<DtoHistoryResp
     const data = res.data as DtoHistoryResponse | undefined;
     if (!data) return null;
 
-    const messages = ensureRoom(roomId);
+    const currentMessages = rooms.get(roomId);
+    const messages = new SvelteMap<string, DtoChatMessage>(currentMessages ?? []);
     for (const rawMessage of data.messages) {
         const msg = normalizeMessage(rawMessage);
         messages.set(msg.id, msg);
     }
+    // Publish a complete page in one reactive update. This prevents the
+    // virtualized list from measuring every intermediate message count.
+    rooms.set(roomId, messages);
 
     nextCursors.set(roomId, data.nextCursor);
     return data;
@@ -131,7 +136,12 @@ export const chatStore = {
     async focusRoom(roomId: string): Promise<void> {
         if (loaded.has(roomId)) return;
         loaded.add(roomId);
-        await loadPage(roomId);
+        initialLoading.set(roomId, true);
+        try {
+            await loadPage(roomId);
+        } finally {
+            initialLoading.delete(roomId);
+        }
     },
 
     /**
@@ -151,6 +161,11 @@ export const chatStore = {
         } finally {
             loading.delete(roomId);
         }
+    },
+
+    /** Whether the room's first history page is still being fetched. */
+    isInitialLoading(roomId: string): boolean {
+        return initialLoading.has(roomId);
     },
 
     /**

@@ -31,7 +31,11 @@
         </div>
     </div>
     <div class="flex min-h-0 flex-1 flex-col gap-2">
-        <MessageList messages={messages} roomId={channel.roomId}></MessageList>
+        <MessageList
+            messages={messages}
+            roomId={channel.roomId}
+            initialLoading={chatStore.isInitialLoading(channel.roomId)}
+        />
     </div>
     <MessageInput onSend={sendMessage} />
 </div>
