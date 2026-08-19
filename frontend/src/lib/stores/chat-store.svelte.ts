@@ -2,6 +2,7 @@ import { getGatewayManager } from "$lib/gateway/gateway-context.svelte";
 import { api } from "$lib/api";
 import type {
     DtoChatMessage,
+    DtoHistoryResponse,
     MessageCreatePayload,
     MessageUpdatePayload,
     MessageDeletePayload,
@@ -12,7 +13,7 @@ import type {
     MessageReactionRemoveEmojiPayload,
 } from "$shared/dto";
 import { page } from "$app/state";
-import { SvelteMap, SvelteSet } from "svelte/reactivity";
+import { SvelteMap } from "svelte/reactivity";
 import { createLogger } from "$lib/logger";
 import { getErrorMessage } from "$lib/errors";
 
@@ -21,9 +22,9 @@ const logger = createLogger("chat-store");
 // ── Reactive state ──────────────────────────────────────────────────────
 
 const rooms = $state(new SvelteMap<string, SvelteMap<string, DtoChatMessage>>());
-const hasMoreHistory = $state(new SvelteMap<string, boolean>());
-const historyCursors = $state(new SvelteMap<string, { before: string; beforeId: string }>());
-const historyLoading = new Set<string>();
+const nextCursors = $state(new SvelteMap<string, string | null>());
+const loading = new Set<string>();
+const loaded = new Set<string>();
 const HISTORY_PAGE_SIZE = 50;
 
 // ── Internal helpers ────────────────────────────────────────────────────
@@ -46,7 +47,6 @@ function normalizeMessage(message: DtoChatMessage): DtoChatMessage {
             : message.editedAt,
     };
 }
-
 
 const user = $derived(page.data.user ?? null);
 
@@ -77,6 +77,33 @@ function upsertMessage(roomId: string, incoming: DtoChatMessage): void {
     messages.set(incoming.id, incoming);
 }
 
+/**
+ * Fetch a page of history and merge into the room's message map.
+ * If no cursor is provided, fetches the newest page.
+ */
+async function loadPage(roomId: string, cursor?: string): Promise<DtoHistoryResponse | null> {
+    const res = await api.chat.rooms({ roomId }).history.get({
+        query: { limit: HISTORY_PAGE_SIZE, cursor },
+    });
+
+    if (res.error) {
+        logger.error("failed to load history page", { roomId, error: getErrorMessage(res.error) });
+        return null;
+    }
+
+    const data = res.data as DtoHistoryResponse | undefined;
+    if (!data) return null;
+
+    const messages = ensureRoom(roomId);
+    for (const rawMessage of data.messages) {
+        const msg = normalizeMessage(rawMessage);
+        messages.set(msg.id, msg);
+    }
+
+    nextCursors.set(roomId, data.nextCursor);
+    return data;
+}
+
 // ── Gateway handler cleanup references ──────────────────────────────────
 
 let _unsubscribes: (() => void)[] | null = null;
@@ -85,84 +112,44 @@ let _unsubscribes: (() => void)[] | null = null;
 
 export const chatStore = {
     /**
-     * Reactively get all messages for a room.
+     * Reactively get all messages for a room, sorted oldest-first.
      * Returns an empty array if no messages have been loaded yet.
      */
     messages(roomId: string): DtoChatMessage[] {
-        return Array.from(rooms.get(roomId)?.values() ?? []);
+        const map = rooms.get(roomId);
+        if (!map) return [];
+        return Array.from(map.values()).sort(
+            (a, b) => a.createdAt.valueOf() - b.createdAt.valueOf() || a.id.localeCompare(b.id),
+        );
     },
 
     /**
-     * Load message history from the backend API and replace local state
-     * for the given room.
+     * Ensure the initial page of history has been loaded for a room.
+     * Safe to call multiple times — only fetches once.
+     * Merges into any messages already present (e.g. from WebSocket).
      */
-    async loadHistory(roomId: string): Promise<void> {
-        logger.debug("loading history", { roomId });
-        const res = await api.chat.rooms({ roomId }).history.get({
-            query: { limit: HISTORY_PAGE_SIZE },
-        });
-
-        if (res.data && Array.isArray(res.data)) {
-            logger.debug("loaded messages", { roomId, count: res.data.length });
-            const messageMap = new SvelteMap<string, DtoChatMessage>();
-            for (const rawMessage of res.data) {
-                const msg = normalizeMessage(rawMessage);
-                messageMap.set(msg.id, msg);
-            }
-            rooms.set(roomId, messageMap);
-            hasMoreHistory.set(roomId, res.data.length === HISTORY_PAGE_SIZE);
-            const oldest = res.data.at(-1);
-            if (oldest) {
-                historyCursors.set(roomId, {
-                    before: oldest.createdAt.toISOString(),
-                    beforeId: oldest.id,
-                });
-            }
-        } else if (res.error) {
-            logger.error("failed to load history", { roomId, error: getErrorMessage(res.error) });
-        }
+    async focusRoom(roomId: string): Promise<void> {
+        if (loaded.has(roomId)) return;
+        loaded.add(roomId);
+        await loadPage(roomId);
     },
 
-    /** Load older messages without replacing the currently visible history. */
-    async loadOlderMessages(roomId: string): Promise<boolean> {
-        if (historyLoading.has(roomId) || hasMoreHistory.get(roomId) === false) return false;
+    /**
+     * Load older messages (previous page) for a room.
+     * Returns true if there may be more pages, false if exhausted.
+     */
+    async loadOlder(roomId: string): Promise<boolean> {
+        if (loading.has(roomId)) return false;
 
-        const cursor = historyCursors.get(roomId);
-        if (!cursor) return false;
+        const cursor = nextCursors.get(roomId);
+        if (cursor === null) return false; // null = exhausted, undefined = not loaded yet
 
-        historyLoading.add(roomId);
+        loading.add(roomId);
         try {
-            const res = await api.chat.rooms({ roomId }).history.get({
-                query: { limit: HISTORY_PAGE_SIZE, ...cursor },
-            });
-            if (!res.data || !Array.isArray(res.data)) return false;
-
-            const messages = ensureRoom(roomId);
-            for (const rawMessage of res.data) {
-                const message = normalizeMessage(rawMessage);
-                messages.set(message.id, message);
-            }
-            const more = res.data.length === HISTORY_PAGE_SIZE;
-            hasMoreHistory.set(roomId, more);
-            const oldest = res.data.at(-1);
-            if (oldest) {
-                historyCursors.set(roomId, {
-                    before: oldest.createdAt.toISOString(),
-                    beforeId: oldest.id,
-                });
-            }
-            return more;
+            const data = await loadPage(roomId, cursor);
+            return data?.hasMore ?? false;
         } finally {
-            historyLoading.delete(roomId);
-        }
-    },
-
-    /**
-     * Called when the user looks at a room, if the store has not yet been initialized for that room go and load the history.
-     */
-    async focusedRoom(roomId: string): Promise<void> {
-        if (!rooms.has(roomId)) {
-            await this.loadHistory(roomId);
+            loading.delete(roomId);
         }
     },
 

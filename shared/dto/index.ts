@@ -1,5 +1,5 @@
-export { DtoChatMessageSchema, DtoUserSchema, DtoEmojiSchema, DtoReactionSchema } from "./chat";
-export type { DtoChatMessage, DtoUser, DtoEmoji, DtoReaction } from "./chat";
+export { DtoChatMessageSchema, DtoUserSchema, DtoEmojiSchema, DtoReactionSchema, DtoHistoryResponseSchema } from "./chat";
+export type { DtoChatMessage, DtoUser, DtoEmoji, DtoReaction, DtoHistoryResponse } from "./chat";
 export { DtoChannelSchema, DtoRoomSchema } from "./chat";
 export type { DtoChannel, DtoRoom } from "./chat";
 export { DtoVoiceRoomSchema, DtoVoiceUserSchema, DtoVoiceDeviceSchema, DtoVoiceTrackSchema } from "./voice-room";

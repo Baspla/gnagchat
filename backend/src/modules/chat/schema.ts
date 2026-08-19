@@ -1,5 +1,5 @@
 // db/schema/chat.ts
-import { sqliteTable, text, integer, uniqueIndex, primaryKey, check } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, uniqueIndex, primaryKey, check, index } from 'drizzle-orm/sqlite-core';
 import { user } from '../user/schema';
 import { sql } from 'drizzle-orm/sql';
 
@@ -34,7 +34,9 @@ export const message = sqliteTable('message', {
     userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
     content: text('content').notNull(),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
+}, (table) => [
+    index('message_room_created_idx').on(table.roomId, table.createdAt, table.id),
+]);
 
 export const roomReadState = sqliteTable('room_read_state', {
     roomId: text('room_id')

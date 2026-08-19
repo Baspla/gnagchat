@@ -6,12 +6,13 @@ import { PermissionService } from '../permission/service';
 import { user } from '../user/schema';
 import type { User } from '../user/schema';
 import { validateChannelName } from '../../util/validation';
-import type { DtoUser, DtoChatMessage, DtoChannel, DtoRoom } from '$shared/dto/chat';
+import type { DtoUser, DtoChatMessage, DtoChannel, DtoRoom, DtoHistoryResponse } from '$shared/dto/chat';
 import type { WsMessage } from '$shared/dto/ws-message';
 import { broadcastMessage } from '../gateway/service';
 import { voiceStateStore } from '../livekit/voice-state';
 import { createLogger } from '../../lib/logger';
 import { ForbiddenError, NotFoundError, BadRequestError, InternalError } from '../../lib/errors';
+import { encodeHistoryCursor, decodeHistoryCursor } from '../../util/history-cursor';
 
 const logger = createLogger('chat');
 
@@ -124,34 +125,57 @@ export class ChatService {
 
     /**
      * Fetches historical messages after validating room access.
+     * Uses cursor-based pagination with an opaque cursor.
+     * Returns a metadata wrapper with hasMore and nextCursor.
      * Scoped as: ...AsUser
      */
-    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50, before?: string, beforeId?: string) {
+    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50, cursor?: string): Promise<DtoHistoryResponse> {
         // 1. Validate access first
         await this.canViewRoomAsUser(userId, roomId);
 
-        // 2. Fetch history
-        const beforeDate = before ? new Date(before) : undefined;
-        if (before && Number.isNaN(beforeDate?.getTime())) {
-            throw new BadRequestError('Invalid history cursor');
+        // 2. Decode cursor if provided
+        let cursorCondition: typeof message.$inferSelect | undefined;
+        if (cursor) {
+            const decoded = decodeHistoryCursor(cursor);
+            cursorCondition = {
+                id: decoded.id,
+                roomId: '',
+                userId: '',
+                content: '',
+                createdAt: new Date(decoded.createdAt),
+            };
         }
 
-        const messages = await db.query.message.findMany({
-            where: beforeDate
-                ? and(
-                    eq(message.roomId, roomId),
-                    beforeId
-                        ? or(
-                            lt(message.createdAt, beforeDate),
-                            and(eq(message.createdAt, beforeDate), lt(message.id, beforeId)),
-                        )
-                        : lt(message.createdAt, beforeDate),
-                )
-                : eq(message.roomId, roomId),
+        // 3. Fetch limit + 1 to determine hasMore
+        const where = cursorCondition
+            ? and(
+                eq(message.roomId, roomId),
+                or(
+                    lt(message.createdAt, cursorCondition.createdAt),
+                    and(eq(message.createdAt, cursorCondition.createdAt), lt(message.id, cursorCondition.id)),
+                ),
+            )
+            : eq(message.roomId, roomId);
+
+        const rows = await db.query.message.findMany({
+            where,
             orderBy: [desc(message.createdAt), desc(message.id)],
-            limit,
+            limit: limit + 1,
         });
-        return this.transformMessagesToDto(messages);
+
+        // 4. Determine hasMore and trim the extra row
+        const hasMore = rows.length > limit;
+        const messages = hasMore ? rows.slice(0, limit) : rows;
+
+        // 5. Build nextCursor from the oldest returned message
+        const oldest = messages[messages.length - 1];
+        const nextCursor = oldest
+            ? encodeHistoryCursor({ createdAt: oldest.createdAt.toISOString(), id: oldest.id })
+            : null;
+
+        // 6. Transform and return
+        const dtos = await this.transformMessagesToDto(messages);
+        return { messages: dtos, hasMore, nextCursor };
     }
 
     static async getRoomMemberIdsAsSystem(roomId: string): Promise<string[]> {

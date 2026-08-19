@@ -18,7 +18,10 @@
     let atEnd = $state(true);
     let loadingOlder = $state(false);
     let olderHistoryExhausted = $state(false);
-    let initializedRoom = $state<string | null>(null);
+    let topSentinel = $state<HTMLElement | null>(null);
+    let initialPositioningScheduled = false;
+    let initialPositioned = $state(false);
+    let topLoadArmed = $state(true);
 
     function updateVirtualizerView(instance: VirtualizerView): void {
         virtualItems = instance.getVirtualItems();
@@ -33,9 +36,6 @@
     }
 
     function messageKey(message: DtoChatMessage): string {
-        // Keep an optimistic message and its server response as the same
-        // virtual item. The nonce is preserved by sendMessage during
-        // reconciliation; history messages fall back to their database id.
         return message.nonce || message.id;
     }
 
@@ -85,24 +85,47 @@
         virtualizer?.measureElement(element);
     }
 
+    // ── IntersectionObserver sentinel for scroll-up loading ──────────
+    // anchorTo: 'end' + stable getItemKey handles scroll preservation
+    // automatically when older messages are prepended.
     $effect(() => {
-        if (initializedRoom !== roomId) {
-            initializedRoom = null;
-            olderHistoryExhausted = false;
-        }
-        if (!virtualizer || olderHistoryExhausted || loadingOlder || !virtualItems.some((item) => item.index === 0)) return;
-        loadingOlder = true;
-        chatStore.loadOlderMessages(roomId).then((hasMore) => {
-            if (!hasMore) olderHistoryExhausted = true;
-        }).finally(() => loadingOlder = false);
+        if (!topSentinel || !initialPositioned || olderHistoryExhausted) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (!entry.isIntersecting) {
+                    topLoadArmed = true;
+                    return;
+                }
+                if (!topLoadArmed || loadingOlder || olderHistoryExhausted) return;
+
+                topLoadArmed = false;
+                loadingOlder = true;
+
+                chatStore.loadOlder(roomId).then((hasMore) => {
+                    if (!hasMore) olderHistoryExhausted = true;
+                }).finally(() => {
+                    loadingOlder = false;
+                });
+            },
+            { root: scrollElement, threshold: 0 },
+        );
+        observer.observe(topSentinel);
+        return () => observer.disconnect();
     });
 
-    // Initial positioning is intentionally imperative. Appends and dynamic
-    // streaming heights are handled by anchorTo/followOnAppend above.
+    // Initial positioning — scroll to end exactly once.
+    //
+    // This effect also reacts to rows.length. Without the guard, prepending
+    // older history schedules another scrollToEnd and loses the user's place.
     $effect(() => {
-        if (initializedRoom === roomId || !virtualizer || rows.length === 0) return;
-        initializedRoom = roomId;
-        requestAnimationFrame(() => virtualizer?.scrollToEnd());
+        if (!virtualizer || rows.length === 0 || initialPositioningScheduled) return;
+
+        initialPositioningScheduled = true;
+        const frame = requestAnimationFrame(() => {
+            virtualizer?.scrollToEnd();
+            initialPositioned = true;
+        });
+        return () => cancelAnimationFrame(frame);
     });
 </script>
 
@@ -112,6 +135,7 @@
             Ältere Nachrichten werden geladen …
         </div>
     {/if}
+    <div bind:this={topSentinel} class="h-px"></div>
     <div class="relative w-full" style:height={`${totalSize}px`}>
         {#each virtualItems as virtualItem (virtualItem.key)}
             {@const row = rows[virtualItem.index]}

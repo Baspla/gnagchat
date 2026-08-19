@@ -62,6 +62,12 @@ export const DtoTextChatMessage = t.Object({
 export const DtoChatMessageSchema = t.Union([DtoTextChatMessage])
 export const DtoRoomSchema = t.Union([DtoChannelSchema, DtoDMSchema]);
 
+export const DtoHistoryResponseSchema = t.Object({
+    messages: t.Array(DtoChatMessageSchema),
+    hasMore: t.Boolean(),
+    nextCursor: t.Optional(t.Nullable(t.String())),
+});
+
 export type DtoUser = typeof DtoUserSchema.static;
 export type DtoEmoji = typeof DtoEmojiSchema.static;
 export type DtoReaction = typeof DtoReactionSchema.static;
@@ -69,3 +75,4 @@ export type DtoChatMessage = typeof DtoChatMessageSchema.static;
 export type DtoRoom = typeof DtoRoomSchema.static;
 export type DtoChannel = typeof DtoChannelSchema.static;
 export type DtoDM = typeof DtoDMSchema.static;
+export type DtoHistoryResponse = typeof DtoHistoryResponseSchema.static;
