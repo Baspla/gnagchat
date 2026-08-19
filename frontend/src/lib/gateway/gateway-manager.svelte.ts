@@ -86,7 +86,7 @@ export class GatewayManager {
         logger.info("connecting to Centrifugo");
         this.centrifuge.on("error", (context) => {
             logger.error(context.error.message)
-            if(context.error.message = "transport closed"){
+            if(context.error.message == "transport closed"){
                 toaster.error({
                     title: "Error connecting to Realtime Messaging Server",
                 })

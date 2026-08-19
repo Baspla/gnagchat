@@ -7,7 +7,6 @@ import { UserService } from "../user/service";
 import { createLogger } from "../../lib/logger";
 
 const logger = createLogger('auth');
-const userService = UserService;
 
 export const auth = betterAuth({
 	secret: env.BETTER_AUTH_SECRET || undefined,
@@ -27,7 +26,7 @@ export const auth = betterAuth({
 			create: {
 				after: async (user) => {
 					logger.info('new user created', { userId: user.id });
-					await userService.upsertUserAsSystem({
+					await UserService.upsertUserAsSystem({
 						id: user.id,
 						name: user.name,
 						email: user.email,

@@ -499,12 +499,12 @@ export class ChatService {
             author,
             content: msg.content,
             createdAt: msg.createdAt,
-            editedAt: msg.createdAt,
-            mentions: [], // Populate mentions if applicable
-            emojis: [], // Populate emojis if applicable
-            reactions: [], // Populate reactions if applicable
+            editedAt: msg.createdAt, // TODO
+            mentions: [], // TODO Populate mentions if applicable
+            emojis: [], // TODO Populate emojis if applicable
+            reactions: [], // TODO Populate reactions if applicable
             nonce: nonce ?? '', // Use a nonce if needed
-            pinned: false, // Set pinned status if applicable
+            pinned: false, // TODO Set pinned status if applicable
             type: 'text',
         };
     }

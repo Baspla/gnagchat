@@ -7,7 +7,7 @@ export const DtoUserSchema = t.Object({
     avatarUrl: t.Optional(t.Nullable(t.String())),
 });
 
-const BaseRoomProperites = {
+const BaseRoomProperties = {
     roomId: t.String(),
     createdAt: t.Date(),
     voiceState: t.Optional(t.Nullable(DtoVoiceRoomSchema)),
@@ -15,13 +15,13 @@ const BaseRoomProperites = {
 };
 
 export const DtoChannelSchema = t.Object({
-    ...BaseRoomProperites,
+    ...BaseRoomProperties,
     type: t.Literal("channel" as const),
     name: t.String(),
 });
 
 export const DtoDMSchema = t.Object({
-    ...BaseRoomProperites,
+    ...BaseRoomProperties,
     type: t.Literal("dm" as const),
     recipient: DtoUserSchema,
 });

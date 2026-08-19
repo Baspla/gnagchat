@@ -38,7 +38,7 @@ export function getDeviceProfile(): DeviceProfile {
   }
 
   // Handle UUID in Local Storage
-  const STORAGE_KEY = 'gnagplus_device_id';
+  const STORAGE_KEY = 'gnagchat_device_id';
   let deviceId: string | null = crypto.randomUUID(); // Fallback in case localStorage is unavailable
 
   try {
