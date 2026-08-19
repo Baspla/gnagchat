@@ -4,6 +4,7 @@
     import type { DtoChatMessage } from "$shared/dto";
     import { chatStore } from "$lib/stores/chat-store.svelte";
     import ChatMessage from "./ChatMessage.svelte";
+    import DayDivider from "./DayDivider.svelte";
 
     let {
         messages,
@@ -26,6 +27,20 @@
     // always use their stable ID; the fallback is only for that transient
     // out-of-range lookup.
     const getMessageKey = (index: number) => messages[index]?.id ?? `stale-message-${index}`;
+
+    function isNewDay(index: number): boolean {
+        if (index === 0) return true;
+
+        const current = messages[index];
+        const previous = messages[index - 1];
+        if (!current || !previous) return false;
+
+        return (
+            current.createdAt.getFullYear() !== previous.createdAt.getFullYear() ||
+            current.createdAt.getMonth() !== previous.createdAt.getMonth() ||
+            current.createdAt.getDate() !== previous.createdAt.getDate()
+        );
+    }
 
     const virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
         count: 0,
@@ -120,7 +135,7 @@
 <div class="relative min-h-0 flex-1">
     <div
         bind:this={parentRef}
-        class="h-full min-h-0 overflow-auto"
+        class="h-full min-h-0 overflow-auto p-3"
         aria-label="Chat messages"
     >
         <div
@@ -135,6 +150,9 @@
                         class="absolute top-0 w-full"
                         style:transform={`translateY(${virtualItem.start}px)`}
                     >
+                        {#if isNewDay(virtualItem.index)}
+                            <DayDivider timestamp={messages[virtualItem.index]!.createdAt} />
+                        {/if}
                         <ChatMessage message={messages[virtualItem.index]!} />
                     </div>
                 {/if}
