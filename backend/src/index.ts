@@ -9,7 +9,7 @@ import { chatModule } from './modules/chat';
 import { livekitModule } from './modules/livekit';
 import { gatewayModule } from './modules/gateway';
 import { createLogger } from './lib/logger';
-import { isAppError, toErrorResponse } from './lib/errors';
+import { BadRequestError, ConflictError, ForbiddenError, InternalError, isAppError, NotFoundError, toErrorResponse, UnauthorizedError } from './lib/errors';
 
 const logger = createLogger('app');
 

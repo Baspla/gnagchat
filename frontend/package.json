@@ -16,6 +16,7 @@
     "@lucide/svelte": "^1.31.0",
     "@tanstack/svelte-virtual": "^3.13.35",
     "better-auth": "^1.6.23",
+    "bits-ui": "^2.18.2",
     "centrifuge": "^5.7.0",
     "dayjs": "^1.11.23",
     "livekit-client": "^2.21.0",

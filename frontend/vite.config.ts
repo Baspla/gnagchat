@@ -19,5 +19,8 @@ export default defineConfig(({ mode }) => {
                 },
             },
         },
+        ssr: {
+            noExternal: ['bits-ui'],
+        },
     };
 });
