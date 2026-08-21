@@ -3,6 +3,7 @@ import { ChatService } from './service'
 import { Modules } from '@gnagchat/shared/constants'
 import { authMiddleware } from '../auth'
 import { createLogger } from '../../lib/logger'
+import { BadRequestError } from '../../lib/errors'
 
 const logger = createLogger('chat');
 
@@ -11,6 +12,7 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
     .derive({ as: 'scoped' }, () => ({
         chatService: ChatService
     }))
+    .error({BadRequestError})
     .post('/channels', async ({ user, body, chatService }) => {
         const channel = await chatService.createChannel(body.name);
         return channel;

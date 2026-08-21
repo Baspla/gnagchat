@@ -6,6 +6,8 @@
     import { onMount } from "svelte";
     import ChannelEntry from "$lib/components/channellist/ChannelEntry.svelte";
     import CallButton from "$lib/components/channellist/CallButton.svelte";
+    import CustomContextMenu from "../CustomContextMenu.svelte";
+    import CustomContextMenuItem from "../CustomContextMenuItem.svelte";
 
     let {
         selectedChannel = $bindable(null as DtoChannel | null),
@@ -36,16 +38,23 @@
     });
 </script>
 
-<div class="flex flex-col gap-2 p-2">
-    <h2 class="text-lg font-bold px-2">Gnag Chat</h2>
-    {#each channels as channel (channel.roomId)}
-        <div class="flex items-center gap-2">
-            <ChannelEntry
-                {channel}
-                selected={selectedChannel?.roomId === channel.roomId}
-                onclick={() => (selectedChannel = channel)}
-            />
-            <CallButton {channel} {manager} />
-        </div>
-    {/each}
-</div>
+<CustomContextMenu triggerClass="h-full">
+    <div class="flex flex-col gap-2 p-2 h-full overflow-y-auto">
+        <h2 class="text-lg font-bold px-2">Gnag Chat</h2>
+        {#each channels as channel (channel.roomId)}
+            <div class="flex items-center gap-2">
+                <ChannelEntry
+                    {channel}
+                    selected={selectedChannel?.roomId === channel.roomId}
+                    onclick={() => (selectedChannel = channel)}
+                />
+                <CallButton {channel} {manager} />
+            </div>
+        {/each}
+    </div>
+    {#snippet contextMenuContent()}
+        <CustomContextMenuItem>
+            <div>Channel erstellen</div>
+        </CustomContextMenuItem>
+    {/snippet}
+</CustomContextMenu>
