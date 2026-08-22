@@ -9,7 +9,7 @@ const LEVELS: Record<LogLevel, number> = {
     debug: 3,
 };
 
-const configuredLevel: LogLevel =
+export const configuredLevel: LogLevel =
     (env.LOG_LEVEL as LogLevel | undefined) ?? "info";
 const currentThreshold = LEVELS[configuredLevel] ?? LEVELS.info;
 
@@ -47,7 +47,7 @@ export function createLogger(scope: string): Logger {
         if (!isEnabled(level)) return;
 
         const time = formatTime(new Date());
-        const prefix = `[${time}] [${level}] ${msg}`;
+        const prefix = `[${time}] [${level}] [${scope}] ${msg}`;
         const formatted = data === undefined ? prefix : `${prefix} ${formatData(data)}`;
 
         // eslint-disable-next-line no-console

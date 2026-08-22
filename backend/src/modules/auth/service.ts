@@ -21,6 +21,26 @@ export const auth = betterAuth({
 			},
 		}
 	},
+	logger: {
+		level: env.BETTER_AUTH_LOG_LEVEL as "error" | "warn" | "info" | "debug" || "info",
+		disabled: false,
+		log: (level, message, ...args) => {
+			switch (level) {
+				case "error":
+					logger.error(message, args);
+					break;
+				case "warn":
+					logger.warn(message, args);
+					break;
+				case "info":
+					logger.info(message, args);
+					break;
+				case "debug":
+					logger.debug(message, args);
+					break;
+			}
+		}
+	},
 	databaseHooks: {
 		user: {
 			create: {
@@ -59,7 +79,7 @@ export const auth = betterAuth({
 				clientId: env.OAUTH_CLIENT_ID!,
 				clientSecret: env.OAUTH_CLIENT_SECRET!,
 				discoveryUrl: env.OAUTH_DISCOVERY_URL!,
-				redirectURI: `${env.BETTER_AUTH_URL}/api/betterauth/auth/oauth2/callback/${env.OAUTH_PROVIDER_ID}`,
+				redirectURI: `${env.BETTER_AUTH_URL}/api/betterauth/auth/callback/${env.OAUTH_PROVIDER_ID}`,
 				scopes: ["openid", "profile", "email", "groups"],
 				overrideUserInfo: true,
 				mapProfileToUser: async (profile: unknown) => {

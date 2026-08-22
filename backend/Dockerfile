@@ -2,8 +2,8 @@ FROM oven/bun:1
 
 WORKDIR /app
 
-# 1. Copy the root workspace config and ALL package.jsons first (for caching)
-COPY package.json ./
+# 1. Copy the root workspace config, lockfile and ALL package.jsons first (for caching)
+COPY package.json bun.lock ./
 COPY backend/package.json ./backend/
 COPY shared/package.json ./shared/
 COPY frontend/package.json ./frontend/
