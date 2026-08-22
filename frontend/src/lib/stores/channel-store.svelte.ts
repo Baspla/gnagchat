@@ -15,6 +15,13 @@ const channels = $state(new SvelteMap<string, DtoChannel>());
 let initialLoading = $state(false);
 let loaded = $state(false);
 
+/**
+ * Cached in-flight (or completed) load promise.
+ * Guarantees that all concurrent callers of `loadChannels()`
+ * await the same fetch instead of resolving early.
+ */
+let loadPromise: Promise<void> | null = null;
+
 // ── Internal helpers ────────────────────────────────────────────────────
 
 function normalizeChannel(channel: DtoChannel): DtoChannel {
@@ -55,26 +62,33 @@ export const channelStore = {
 
     /**
      * Fetch all accessible channels and seed the store.
-     * Safe to call multiple times — only fetches once.
+     * Safe to call multiple times — concurrent callers share
+     * the same in-flight fetch; a failed fetch can be retried.
      */
-    async loadChannels(): Promise<void> {
-        if (loaded) return;
-        loaded = true;
-        initialLoading = true;
-        try {
-            const res = await api.chat.channels.get();
-            if (res.error) {
-                logger.error("failed to load channels", { error: getErrorMessage(res.error) });
-                return;
-            }
-            if (res.data) {
-                for (const channel of res.data) {
-                    upsertChannel(channel);
+    loadChannels(): Promise<void> {
+        if (!loadPromise) {
+            loadPromise = (async () => {
+                initialLoading = true;
+                try {
+                    const res = await api.chat.channels.get();
+                    if (res.error) {
+                        logger.error("failed to load channels", { error: getErrorMessage(res.error) });
+                        // Allow a retry on the next call after a failure.
+                        loadPromise = null;
+                        return;
+                    }
+                    if (res.data) {
+                        for (const channel of res.data) {
+                            upsertChannel(channel);
+                        }
+                    }
+                } finally {
+                    loaded = true;
+                    initialLoading = false;
                 }
-            }
-        } finally {
-            initialLoading = false;
+            })();
         }
+        return loadPromise;
     },
 
     /** Whether the initial channel list is still being fetched. */

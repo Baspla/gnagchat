@@ -6,7 +6,7 @@
     import ChannelList from "$lib/components/channellist/ChannelList.svelte";
     import { channelStore } from "$lib/stores/channel-store.svelte";
 
-    // Preserve the old behavior of auto-selecting the first channel:
+    // auto-selecting the first channel:
     // once the channel list is loaded, redirect to it.
     let noChannels = $state(false);
 
