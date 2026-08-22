@@ -79,7 +79,7 @@ export const auth = betterAuth({
 				clientId: env.OAUTH_CLIENT_ID!,
 				clientSecret: env.OAUTH_CLIENT_SECRET!,
 				discoveryUrl: env.OAUTH_DISCOVERY_URL!,
-				redirectURI: `${env.BETTER_AUTH_URL}/api/betterauth/auth/oauth2/callback/${env.OAUTH_PROVIDER_ID}`,
+				redirectURI: `${env.BETTER_AUTH_URL}/api/betterauth/auth/callback/${env.OAUTH_PROVIDER_ID}`,
 				scopes: ["openid", "profile", "email", "groups"],
 				overrideUserInfo: true,
 				mapProfileToUser: async (profile: unknown) => {
