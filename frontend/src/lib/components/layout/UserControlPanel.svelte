@@ -142,7 +142,7 @@
             <button class="hover:shadow-md rounded-md p-1" title="Settings" onclick={logout}>
                 <Settings class="w-4 h-4" />
             </button>
-            <Lightswitch />
+            <!--<Lightswitch />-->
         </div>
     </div>
 </footer>

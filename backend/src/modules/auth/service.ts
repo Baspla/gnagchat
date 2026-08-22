@@ -26,15 +26,16 @@ export const auth = betterAuth({
 			create: {
 				after: async (user) => {
 					logger.info('new user created', { userId: user.id });
-					await UserService.upsertUserAsSystem({
+					const result = await UserService.upsertUserAsSystem({
 						id: user.id,
 						name: user.name,
 						email: user.email,
 						emailVerified: user.emailVerified,
 						image: user.image,
-					}).catch(e => {
-						logger.error('error upserting user', { userId: user.id, error: String(e) });
 					});
+					if (!result.ok) {
+						logger.error('error upserting user', { userId: user.id, error: result.error.message });
+					}
 				}
 			}
 		},

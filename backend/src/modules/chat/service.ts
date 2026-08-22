@@ -5,13 +5,20 @@ import type { Message } from './schema';
 import { PermissionService } from '../permission/service';
 import { user } from '../user/schema';
 import type { User } from '../user/schema';
-import { validateChannelName } from '../../util/validation';
 import type { DtoUser, DtoChatMessage, DtoChannel, DtoRoom, DtoHistoryResponse } from '$shared/dto/chat';
 import type { WsMessage } from '$shared/dto/ws-message';
 import { broadcastMessage } from '../gateway/service';
 import { voiceStateStore } from '../livekit/voice-state';
 import { createLogger } from '../../lib/logger';
-import { ForbiddenError, NotFoundError, BadRequestError, InternalError } from '../../lib/errors';
+import {
+    ok,
+    err,
+    type Result,
+    type ForbiddenError,
+    type NotFoundError,
+    type BadRequestError,
+    type InternalError,
+} from '../../lib/result';
 import { encodeHistoryCursor, decodeHistoryCursor } from '../../util/history-cursor';
 
 const logger = createLogger('chat');
@@ -46,48 +53,58 @@ export class ChatService {
         }*/
     }
 
-    private static async getRoomTypeAsUser(userId: string, roomId: string): Promise<{ type: 'channel' | 'dm' }> {
+    private static async getRoomTypeAsUser(userId: string, roomId: string): Promise<Result<{ type: 'channel' | 'dm' }, NotFoundError | ForbiddenError>> {
         const canView = await this.canViewRoomAsUser(userId, roomId);
+        if (!canView) {
+            return err({ status: 403, code: 'FORBIDDEN', message: 'Insufficient permissions to view this room' });
+        }
+        const roomTypeResult = await this.getRoomTypeAsSystem(roomId);
+        if (!roomTypeResult.ok) {
+            return roomTypeResult;
+        }
+        return ok({ type: roomTypeResult.value });
+    }
+
+    static async getRoomTypeAsSystem(roomId: string): Promise<Result<'channel' | 'dm', NotFoundError>> {
         const targetRoom = await db.query.room.findFirst({
             where: eq(room.id, roomId)
         });
 
         if (!targetRoom) {
-            throw new NotFoundError('Room not found');
+            return err({ status: 404, code: 'NOT_FOUND', message: 'Room not found' });
         }
-        if (!canView) {
-            if (targetRoom.type === 'channel') {
-                throw new ForbiddenError('Insufficient permissions to view this channel');
-            } else {
-                throw new ForbiddenError('Not a participant of this direct message');
-            }
-        }
-
-        return { type: targetRoom.type };
+        
+        return ok(targetRoom.type);
     }
 
     /**
      * Saves a message after validating room access and send permissions.
      * Scoped as: ...AsUser
      */
-    static async saveMessageAsUser(userId: string, roomId: string, content: string, nonce?: string) {
+    static async saveMessageAsUser(userId: string, roomId: string, content: string, nonce?: string): Promise<Result<DtoChatMessage, ForbiddenError | NotFoundError | InternalError>> {
         const canView = await this.canViewRoomAsUser(userId, roomId);
         if (!canView) {
-            throw new ForbiddenError('Insufficient permissions to view this room');
+            return err({ status: 403, code: 'FORBIDDEN', message: 'Insufficient permissions to view this room' });
         }
 
         const roomInfo = await this.getRoomTypeAsUser(userId, roomId);
+        if (!roomInfo.ok) {
+            return roomInfo;
+        }
 
         // 2. If it's a channel, explicitly check send permissions
-        if (roomInfo.type === 'channel') {
+        if (roomInfo.value.type === 'channel') {
             const canSend = await PermissionService.hasPermissionInChannel(userId, roomId, 'send_messages');
-            if (!canSend) {
-                throw new ForbiddenError('Insufficient permissions to send messages in this channel');
+            if (!canSend.ok) {
+                return canSend;
             }
-        } else if (roomInfo.type === 'dm') {
+            if (!canSend.value) {
+                return err({ status: 403, code: 'FORBIDDEN', message: 'Insufficient permissions to send messages in this channel' });
+            }
+        } else if (roomInfo.value.type === 'dm') {
             // For DMs, no additional permission checks are needed since access was already verified
         } else {
-            throw new InternalError('Unknown room type');
+            return err({ status: 500, code: 'INTERNAL_ERROR', message: 'Unknown room type' });
         }
 
         // 3. Save Message
@@ -104,23 +121,27 @@ export class ChatService {
         const roomMembers = await this.getRoomMemberIdsAsSystem(roomId);
 
         // 6. Publish message to all recipients' channels
-        const wsMessage: WsMessage = {
-            id: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            payload: {
-                type: "message_create",
-                data: dto,
-            },
-        };
+        if (roomMembers.ok) {
+            const wsMessage: WsMessage = {
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString(),
+                payload: {
+                    type: "message_create",
+                    data: dto,
+                },
+            };
 
-        try {
-            await broadcastMessage(roomMembers.map(id => `user:${id}`), wsMessage);
-            logger.debug('message broadcasted', { roomId, messageId: savedMessage.id });
-        } catch (err) {
-            logger.error('failed to broadcast message', { roomId, messageId: savedMessage.id, error: String(err) });
+            const broadcast = await broadcastMessage(roomMembers.value.map(id => `user:${id}`), wsMessage);
+            if (broadcast.ok) {
+                logger.debug('message broadcasted', { roomId, messageId: savedMessage.id });
+            } else {
+                logger.error('failed to broadcast message', { roomId, messageId: savedMessage.id, error: broadcast.error.message });
+            }
+        } else {
+            logger.error('failed to resolve room members for broadcast', { roomId, messageId: savedMessage.id, error: roomMembers.error.message });
         }
 
-        return dto;
+        return ok(dto);
     }
 
     /**
@@ -129,7 +150,7 @@ export class ChatService {
      * Returns a metadata wrapper with hasMore and nextCursor.
      * Scoped as: ...AsUser
      */
-    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50, cursor?: string): Promise<DtoHistoryResponse> {
+    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50, cursor?: string): Promise<Result<DtoHistoryResponse, BadRequestError>> {
         // 1. Validate access first
         await this.canViewRoomAsUser(userId, roomId);
 
@@ -137,12 +158,15 @@ export class ChatService {
         let cursorCondition: typeof message.$inferSelect | undefined;
         if (cursor) {
             const decoded = decodeHistoryCursor(cursor);
+            if (!decoded.ok) {
+                return decoded;
+            }
             cursorCondition = {
-                id: decoded.id,
+                id: decoded.value.id,
                 roomId: '',
                 userId: '',
                 content: '',
-                createdAt: new Date(decoded.createdAt),
+                createdAt: new Date(decoded.value.createdAt),
             };
         }
 
@@ -175,16 +199,16 @@ export class ChatService {
 
         // 6. Transform and return
         const dtos = await this.transformMessagesToDto(messages);
-        return { messages: dtos, hasMore, nextCursor };
+        return ok({ messages: dtos, hasMore, nextCursor });
     }
 
-    static async getRoomMemberIdsAsSystem(roomId: string): Promise<string[]> {
+    static async getRoomMemberIdsAsSystem(roomId: string): Promise<Result<string[], NotFoundError>> {
         const targetRoom = await db.query.room.findFirst({
             where: eq(room.id, roomId)
         });
 
         if (!targetRoom) {
-            throw new NotFoundError('Room not found');
+            return err({ status: 404, code: 'NOT_FOUND', message: 'Room not found' });
         }
 
         if (targetRoom.type === 'channel') {
@@ -199,7 +223,7 @@ export class ChatService {
                 }
             }
 
-            return memberIds;
+            return ok(memberIds);
 
         } else if (targetRoom.type === 'dm') {
             const dm = await db.query.dmMetadata.findFirst({
@@ -207,18 +231,18 @@ export class ChatService {
             });
 
             if (dm) {
-                return [dm.userAId, dm.userBId];
+                return ok([dm.userAId, dm.userBId]);
             }
         }
 
-        return [];
+        return ok([]);
     }
 
     /**
      * Updates the user's watermark read state after validating room access.
      * Scoped as: ...AsUser
      */
-    static async markRoomAsReadAsUser(userId: string, roomId: string) {
+    static async markRoomAsReadAsUser(userId: string, roomId: string): Promise<Result<null>> {
         await this.canViewRoomAsUser(userId, roomId);
 
         await db.insert(roomReadState)
@@ -231,13 +255,15 @@ export class ChatService {
                 target: [roomReadState.roomId, roomReadState.userId],
                 set: { lastReadAt: new Date() }
             });
+
+        return ok(null);
     }
 
     /**
      * Calculates unread messages for a specific room after validating access.
      * Scoped as: ...AsUser
      */
-    static async getUnreadCountAsUser(userId: string, roomId: string): Promise<number> {
+    static async getUnreadCountAsUser(userId: string, roomId: string): Promise<Result<number>> {
         await this.canViewRoomAsUser(userId, roomId);
 
         const readState = await db.query.roomReadState.findFirst({
@@ -256,18 +282,13 @@ export class ChatService {
             )
         });
 
-        return unreadMessages.length;
+        return ok(unreadMessages.length);
     }
 
     /**
      * Creates a new channel room. No permission checks (deferred).
      */
-    static async createChannel(name: string): Promise<DtoChannel> {
-        const validation = validateChannelName(name);
-        if (!validation.valid) {
-            throw new BadRequestError(validation.error ?? 'Invalid channel name');
-        }
-
+    static async createChannel(name: string): Promise<Result<DtoChannel, NotFoundError>> {
         const trimmedName = name.trim();
 
         const [newRoom] = await db.insert(room).values({
@@ -281,25 +302,48 @@ export class ChatService {
         });
 
         const memberIds = await this.getRoomMemberIdsAsSystem(newRoom.id);
+        if (!memberIds.ok) {
+            return memberIds;
+        }
 
-        //TODO
-
-        return {
+        const dto: DtoChannel = {
             roomId: newRoom.id,
             name: trimmedName,
             createdAt: newRoom.createdAt,
             type: 'channel',
         };
+
+        // Broadcast channel_create to all users that can view the new channel
+        const wsMessage: WsMessage = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            payload: {
+                type: "channel_create",
+                data: dto,
+            },
+        };
+
+        const broadcast = await broadcastMessage(memberIds.value.map(id => `user:${id}`), wsMessage);
+        if (broadcast.ok) {
+            logger.debug('channel_create broadcasted', { roomId: newRoom.id });
+        } else {
+            logger.error('failed to broadcast channel_create', { roomId: newRoom.id, error: broadcast.error.message });
+        }
+
+        return ok(dto);
     }
 
     /**
      * Deletes a channel after validating the user has the 'delete_channel' permission.
      */
-    static async deleteChannelAsUser(userId: string, channelId: string) {
+    static async deleteChannelAsUser(userId: string, channelId: string): Promise<Result<{ success: true }, ForbiddenError | NotFoundError | BadRequestError | InternalError>> {
         // 1. Check permission
         const canDelete = await PermissionService.hasPermissionInChannel(userId, channelId, 'delete_channel');
-        if (!canDelete) {
-            throw new ForbiddenError('Insufficient permissions to delete this channel');
+        if (!canDelete.ok) {
+            return canDelete;
+        }
+        if (!canDelete.value) {
+            return err({ status: 403, code: 'FORBIDDEN', message: 'Insufficient permissions to delete this channel' });
         }
 
         // 2. Verify the room exists and is a channel
@@ -308,27 +352,44 @@ export class ChatService {
         });
 
         if (!targetRoom) {
-            throw new NotFoundError('Channel not found');
+            return err({ status: 404, code: 'NOT_FOUND', message: 'Channel not found' });
         }
 
         if (targetRoom.type !== 'channel') {
-            throw new BadRequestError('Room is not a channel');
+            return err({ status: 400, code: 'BAD_REQUEST', message: 'Room is not a channel' });
         }
 
         // 3. Get all member IDs before deletion (for subscription recalculation)
         const memberIds = await this.getRoomMemberIdsAsSystem(channelId);
+        if (!memberIds.ok) {
+            return memberIds;
+        }
 
         // 4. Delete the room (cascade deletes channel, messages, read states)
         await db.delete(room).where(eq(room.id, channelId));
 
-        // 5. Publish channel_deleted event to the room topic
-        //TODO
+        // 5. Broadcast channel_delete to all users that could view the channel
+        const wsMessage: WsMessage = {
+            id: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            payload: {
+                type: "channel_delete",
+                data: { channelId },
+            },
+        };
 
-        return { success: true };
+        const broadcast = await broadcastMessage(memberIds.value.map(id => `user:${id}`), wsMessage);
+        if (broadcast.ok) {
+            logger.debug('channel_delete broadcasted', { roomId: channelId });
+        } else {
+            logger.error('failed to broadcast channel_delete', { roomId: channelId, error: broadcast.error.message });
+        }
+
+        return ok({ success: true });
     }
 
 
-    static async getRoomAsUser(userId: string, roomId: string): Promise<DtoRoom> {
+    static async getRoomAsUser(userId: string, roomId: string): Promise<Result<DtoRoom, NotFoundError | ForbiddenError | InternalError>> {
         const [result] = await db
             .select({
                 room,
@@ -341,40 +402,49 @@ export class ChatService {
             .where(eq(room.id, roomId));
 
         if (!result) {
-            throw new NotFoundError('Room not found');
+            return err({ status: 404, code: 'NOT_FOUND', message: 'Room not found' });
         }
 
         const { room: dbRoom, channel, dm } = result;
-        const canView = dbRoom.type === 'channel'
-            ? await PermissionService.hasPermissionInChannel(userId, dbRoom.id, 'view_channel')
-            : !!dm && (dm.userAId === userId || dm.userBId === userId);
+        let canView: boolean;
+        if (dbRoom.type === 'channel') {
+            const permResult = await PermissionService.hasPermissionInChannel(userId, dbRoom.id, 'view_channel');
+            if (!permResult.ok) {
+                return permResult;
+            }
+            canView = permResult.value;
+        } else {
+            canView = !!dm && (dm.userAId === userId || dm.userBId === userId);
+        }
 
         if (!canView) {
-            throw new ForbiddenError(
-                dbRoom.type === 'channel'
+            return err({
+                status: 403,
+                code: 'FORBIDDEN',
+                message: dbRoom.type === 'channel'
                     ? 'Insufficient permissions to view this channel'
-                    : 'Not a participant of this direct message'
-            );
+                    : 'Not a participant of this direct message',
+            });
         }
 
         const voiceState = voiceStateStore.get(dbRoom.id) ?? null;
 
         if (dbRoom.type === 'channel') {
             if (!channel) {
-                throw new InternalError('Channel metadata not found');
+                return err({ status: 500, code: 'INTERNAL_ERROR', message: 'Channel metadata not found' });
             }
 
-            return {
+            return ok({
                 roomId: dbRoom.id,
                 name: channel.name,
                 createdAt: dbRoom.createdAt,
                 voiceState,
                 type: 'channel',
-            };
+            });
         }
 
         if (!dm) {
-            throw new InternalError('DM metadata not found');
+            return err({ status: 500, code: 'INTERNAL_ERROR', message: 'DM metadata not found' });
         }
 
         const recipientId = dm.userAId === userId ? dm.userBId : dm.userAId;
@@ -383,23 +453,23 @@ export class ChatService {
         });
 
         if (!recipient) {
-            throw new InternalError('DM recipient not found');
+            return err({ status: 500, code: 'INTERNAL_ERROR', message: 'DM recipient not found' });
         }
 
-        return {
+        return ok({
             roomId: dbRoom.id,
             createdAt: dbRoom.createdAt,
             voiceState,
             type: 'dm',
             recipient: this.transformUserToDto(recipient),
-        };
+        });
     }
 
     /**
      * Returns all rooms the user has permission to view, ordered by creation date.
      * Includes the room type so callers can filter by subtype.
      */
-    static async getAccessibleRoomsAsUser(userId: string): Promise<DtoRoom[]> {
+    static async getAccessibleRoomsAsUser(userId: string): Promise<Result<DtoRoom[], InternalError>> {
         const allRooms = await db
             .select({
                 room,
@@ -414,9 +484,16 @@ export class ChatService {
         const accessible = [];
 
         for (const result of allRooms) {
-            const canView = result.room.type === 'channel'
-                ? await PermissionService.hasPermissionInChannel(userId, result.room.id, 'view_channel')
-                : !!result.dm && (result.dm.userAId === userId || result.dm.userBId === userId);
+            let canView: boolean;
+            if (result.room.type === 'channel') {
+                const permResult = await PermissionService.hasPermissionInChannel(userId, result.room.id, 'view_channel');
+                if (!permResult.ok) {
+                    return permResult;
+                }
+                canView = permResult.value;
+            } else {
+                canView = !!result.dm && (result.dm.userAId === userId || result.dm.userBId === userId);
+            }
             if (canView) {
                 accessible.push(result);
             }
@@ -434,50 +511,57 @@ export class ChatService {
         const voiceStates = voiceStateStore.getForRoomIds(roomIds);
         const voiceStateMap = new Map(voiceStates.map((vs) => [vs.roomId, vs.state]));
 
-        return accessible.flatMap((result): DtoRoom[] => {
+        const rooms: DtoRoom[] = [];
+        for (const result of accessible) {
             const { room: dbRoom, channel, dm } = result;
             const voiceState = voiceStateMap.get(dbRoom.id) ?? null;
 
             if (dbRoom.type === 'channel') {
                 if (!channel) {
-                    throw new InternalError('Channel metadata not found');
+                    return err({ status: 500, code: 'INTERNAL_ERROR', message: 'Channel metadata not found' });
                 }
 
-                return [{
+                rooms.push({
                     roomId: dbRoom.id,
                     name: channel.name,
                     createdAt: dbRoom.createdAt,
                     voiceState,
                     type: 'channel',
-                }];
+                });
+                continue;
             }
 
             if (!dm) {
-                throw new InternalError('DM metadata not found');
+                return err({ status: 500, code: 'INTERNAL_ERROR', message: 'DM metadata not found' });
             }
 
             const recipientId = dm.userAId === userId ? dm.userBId : dm.userAId;
             const recipient = recipientMap.get(recipientId);
             if (!recipient) {
-                throw new InternalError('DM recipient not found');
+                return err({ status: 500, code: 'INTERNAL_ERROR', message: 'DM recipient not found' });
             }
 
-            return [{
+            rooms.push({
                 roomId: dbRoom.id,
                 createdAt: dbRoom.createdAt,
                 voiceState,
                 type: 'dm',
                 recipient: this.transformUserToDto(recipient),
-            }];
-        });
+            });
+        }
+
+        return ok(rooms);
     }
 
     /**
      * Returns all channels the user has permission to view, ordered by creation date.
      */
-    static async getAccessibleChannelsAsUser(userId: string): Promise<DtoChannel[]> {
+    static async getAccessibleChannelsAsUser(userId: string): Promise<Result<DtoChannel[], InternalError>> {
         const accessibleRooms = await this.getAccessibleRoomsAsUser(userId);
-        return accessibleRooms.filter((room): room is DtoChannel => room.type === 'channel');
+        if (!accessibleRooms.ok) {
+            return accessibleRooms;
+        }
+        return ok(accessibleRooms.value.filter((room): room is DtoChannel => room.type === 'channel'));
     }
 
     static async transformMessagesToDto(messages: Message[], nonce?: string): Promise<DtoChatMessage[]> {
@@ -512,8 +596,9 @@ export class ChatService {
         };
     }
 
-    static transformMessageToDto(msg: Message, nonce?: string): Promise<DtoChatMessage> {
-        return this.transformMessagesToDto([msg], nonce).then(dtos => dtos[0]);
+    static async transformMessageToDto(msg: Message, nonce?: string): Promise<DtoChatMessage> {
+        const dtos = await this.transformMessagesToDto([msg], nonce);
+        return dtos[0];
     }
 
     static transformMessageToDtoWithAuthor(msg: Message, author: DtoUser, nonce?: string): DtoChatMessage {

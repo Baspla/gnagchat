@@ -105,7 +105,7 @@ async function loadPage(roomId: string, cursor?: string): Promise<DtoHistoryResp
     // virtualized list from measuring every intermediate message count.
     rooms.set(roomId, messages);
 
-    nextCursors.set(roomId, data.nextCursor);
+    nextCursors.set(roomId, data.nextCursor ?? null);
     return data;
 }
 
@@ -166,6 +166,18 @@ export const chatStore = {
     /** Whether the room's first history page is still being fetched. */
     isInitialLoading(roomId: string): boolean {
         return initialLoading.has(roomId);
+    },
+
+    /**
+     * Remove all locally cached state for a room (messages, cursors, loading flags).
+     * Used e.g. when a channel is deleted via a WS event.
+     */
+    purgeRoom(roomId: string): void {
+        rooms.delete(roomId);
+        nextCursors.delete(roomId);
+        initialLoading.delete(roomId);
+        loading.delete(roomId);
+        loaded.delete(roomId);
     },
 
     /**

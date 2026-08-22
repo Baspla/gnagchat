@@ -1,4 +1,4 @@
-import { BadRequestError } from '../lib/errors';
+import { err, ok, type Result, type BadRequestError } from '../lib/result';
 
 export interface HistoryCursor {
     createdAt: string; // ISO timestamp
@@ -15,17 +15,17 @@ export function encodeHistoryCursor(cursor: HistoryCursor): string {
 
 /**
  * Decodes an opaque base64url cursor back into a HistoryCursor.
- * Throws BadRequestError if the cursor is malformed.
+ * Returns a Result with a BadRequestError if the cursor is malformed.
  */
-export function decodeHistoryCursor(cursor: string): HistoryCursor {
+export function decodeHistoryCursor(cursor: string): Result<HistoryCursor, BadRequestError> {
     try {
         const json = Buffer.from(cursor, 'base64url').toString('utf-8');
         const parsed = JSON.parse(json) as HistoryCursor;
         if (typeof parsed.createdAt !== 'string' || typeof parsed.id !== 'string') {
             throw new Error('Invalid cursor shape');
         }
-        return parsed;
+        return ok(parsed);
     } catch {
-        throw new BadRequestError('Invalid history cursor');
+        return err({ status: 400, code: 'BAD_REQUEST', message: 'Invalid history cursor' });
     }
 }

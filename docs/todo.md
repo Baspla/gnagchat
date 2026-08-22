@@ -31,3 +31,6 @@
   - [ ] Nutzernamen
   - [ ] User Card
   - [ ] Channel Card
+
+## Architecture
+- [ ] Store persistent state, für z.B. Draft Messages, etc. 

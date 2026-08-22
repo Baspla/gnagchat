@@ -9,14 +9,16 @@ import { chatModule } from './modules/chat';
 import { livekitModule } from './modules/livekit';
 import { gatewayModule } from './modules/gateway';
 import { createLogger } from './lib/logger';
-import { BadRequestError, ConflictError, ForbiddenError, InternalError, isAppError, NotFoundError, toErrorResponse, UnauthorizedError } from './lib/errors';
 
 const logger = createLogger('app');
 
 export const app = new Elysia()
-    .onStart(() => {
+    .onStart(async () => {
         logger.info('Elysia starting...');
-        seedDatabase();
+        const seeded = await seedDatabase();
+        if (!seeded.ok) {
+            logger.error('database seeding failed on startup', { error: seeded.error.message });
+        }
     })
     .onRequest(({ request }) => {
         // Skip noisy health-check paths
@@ -29,16 +31,6 @@ export const app = new Elysia()
         logger.debug('request', { method: request.method, url: request.url });
     })
     .onError(({ code, error, set }) => {
-        if (isAppError(error)) {
-            set.status = error.statusCode;
-            logger.warn('request failed', {
-                code: error.code,
-                message: error.message,
-                statusCode: error.statusCode,
-            });
-            return toErrorResponse(error);
-        }
-
         // Elysia built-in errors (e.g. validation, NOT_FOUND)
         if (code === 'NOT_FOUND') {
             set.status = 404;

@@ -9,7 +9,7 @@ import { user } from "../user/schema";
 import { inArray } from "drizzle-orm";
 import { ChatService } from "../chat/service";
 import { createLogger } from "../../lib/logger";
-import { UnauthorizedError, InternalError } from "../../lib/errors";
+import { ok, err, type Result, type UnauthorizedError, type InternalError } from "../../lib/result";
 
 const logger = createLogger('livekit-webhook');
 const receiver = new WebhookReceiver(env.LIVEKIT_API_KEY, env.LIVEKIT_API_SECRET);
@@ -39,13 +39,12 @@ function mapTrackKind(kind: string): string {
 async function broadcastVoiceUpdate(roomId: string) {
     // Resolve member IDs — if the room doesn't exist in the DB there is
     // nobody to broadcast to, so we skip gracefully.
-    let memberIds: string[];
-    try {
-        memberIds = await ChatService.getRoomMemberIdsAsSystem(roomId);
-    } catch {
+    const membersResult = await ChatService.getRoomMemberIdsAsSystem(roomId);
+    if (!membersResult.ok) {
         logger.warn('broadcastVoiceUpdate: room not found, skipping', { roomId });
         return;
     }
+    const memberIds = membersResult.value;
 
     const state = voiceStateStore.get(roomId);
     if (!state) {
@@ -64,7 +63,7 @@ async function broadcastVoiceUpdate(roomId: string) {
                 data: emptyState,
             },
         };
-        broadcastMessage(memberIds.map((id) => `user:${id}`), wsMessage);
+        await broadcastMessage(memberIds.map((id) => `user:${id}`), wsMessage);
         return;
     }
 
@@ -101,14 +100,17 @@ async function broadcastVoiceUpdate(roomId: string) {
             data: enrichedState,
         },
     };
-    broadcastMessage(memberIds.map((id) => `user:${id}`), wsMessage);
+    const broadcast = await broadcastMessage(memberIds.map((id) => `user:${id}`), wsMessage);
+    if (!broadcast.ok) {
+        logger.error('failed to broadcast voice room update', { roomId, error: broadcast.error.message });
+    }
 }
 
 /**
  * Handles an incoming webhook event from LiveKit.
- * Returns 200 OK to acknowledge receipt.
+ * Returns ok("OK") to acknowledge receipt.
  */
-export async function handleWebhookEvent(body: string, authHeader: string): Promise<{ status: number; body: string }> {
+export async function handleWebhookEvent(body: string, authHeader: string): Promise<Result<"OK", UnauthorizedError | InternalError>> {
     try {
         const event = await receiver.receive(body, authHeader);
         const { event: eventName } = event;
@@ -118,7 +120,7 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
         // Extract room name (which is our chat room ID)
         const roomName = event.room?.name;
         if (!roomName) {
-            return { status: 200, body: "OK" };
+            return ok("OK");
         }
 
         logger.debug('voice state before update', { room: roomName, state: voiceStateStore.get(roomName) });
@@ -186,20 +188,26 @@ export async function handleWebhookEvent(body: string, authHeader: string): Prom
 
         logger.debug('voice state after update', { room: roomName, state: voiceStateStore.get(roomName) });
 
-        return { status: 200, body: "OK" };
+        return ok("OK");
     } catch (error: any) {
         // Signature verification failure is a 401; everything else is a 500
         if (error?.message?.includes('signature') || error?.message?.includes('webhook')) {
             logger.warn('webhook signature verification failed', { error: error.message });
-            return { status: 401, body: "Unauthorized" };
+            return err({ status: 401, code: 'UNAUTHORIZED', message: 'Invalid webhook signature' });
         }
         logger.error('webhook handler error', { error: String(error), stack: error?.stack });
-        return { status: 500, body: "Internal Server Error" };
+        return err({ status: 500, code: 'INTERNAL_ERROR', message: 'Internal Server Error' });
     }
 }
 
-function notifyJoinDiscordWebhook(event: WebhookEvent) {
+async function notifyJoinDiscordWebhook(event: WebhookEvent) {
     if (!env.DISCORD_WEBHOOK_URL) {
+        return;
+    }
+    // Check if we have a channel with that room id, otherwise its a private call or a testing room.
+    const roomType = await ChatService.getRoomTypeAsSystem(event.room?.name ?? "");
+    if (!roomType.ok || roomType.value !== "channel") {
+        logger.debug('Skipping Discord webhook for participant_joined, room is not a channel', { room: event.room?.name });
         return;
     }
     logger.debug('Sending Discord webhook for participant_joined', { participant: event.participant?.identity, room: event.room?.name });

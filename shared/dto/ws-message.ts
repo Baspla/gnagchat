@@ -1,12 +1,10 @@
 import { t } from "elysia";
-import { DtoChatMessageSchema, DtoEmojiSchema } from "./chat";
+import { DtoChannelSchema, DtoChatMessageSchema, DtoEmojiSchema } from "./chat";
 import { DtoVoiceRoomSchema } from "./voice-room";
 
 // ── Per-event payload schemas ──────────────────────────────────────────
 
-export const ChannelCreatePayloadSchema = t.Object({
-    channelId: t.String(),
-});
+export const ChannelCreatePayloadSchema = DtoChannelSchema;
 export type ChannelCreatePayload = typeof ChannelCreatePayloadSchema.static;
 
 export const ChannelUpdatePayloadSchema = t.Object({

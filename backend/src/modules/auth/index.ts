@@ -28,7 +28,14 @@ export const authMiddleware = new Elysia({ name: Modules.AUTH })
 
 					if (!session) return status(401)
 
-					const userGroups = JSON.parse(session.user.groups || "[]") as string[];
+					// Guard against malformed groups data — fall back to no groups
+					let userGroups: string[] = [];
+					try {
+						const parsed = JSON.parse(session.user.groups || "[]");
+						if (Array.isArray(parsed)) userGroups = parsed as string[];
+					} catch {
+						// leave userGroups empty
+					}
 
 					const hasGroup = groups.some(group => userGroups.includes(group))
 

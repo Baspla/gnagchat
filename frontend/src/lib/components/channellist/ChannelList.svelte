@@ -1,36 +1,30 @@
 <script lang="ts">
-    import { api } from "$lib/api";
+    import { page } from "$app/state";
+    import { goto } from "$app/navigation";
     import { getVoiceRoom } from "$lib/voice/voice-context.svelte";
+    import { channelStore } from "$lib/stores/channel-store.svelte";
     import { voiceStateStore } from "$lib/voice/voice-state-store.svelte";
-    import type { DtoChannel } from "$shared/dto/chat";
     import { onMount } from "svelte";
     import ChannelEntry from "$lib/components/channellist/ChannelEntry.svelte";
     import CallButton from "$lib/components/channellist/CallButton.svelte";
+    import { channelActions } from "$lib/components/channellist/channel-actions.svelte";
     import CustomContextMenu from "../CustomContextMenu.svelte";
     import CustomContextMenuItem from "../CustomContextMenuItem.svelte";
 
-    let {
-        selectedChannel = $bindable(null as DtoChannel | null),
-    }: {
-        selectedChannel?: DtoChannel | null;
-    } = $props();
+    let channels = $derived(channelStore.channels());
 
-    let channels: DtoChannel[] = $state([]);
+    // The selected channel is derived from the current route
+    // (/channel/[channelId]) instead of local state.
+    let selectedRoomId = $derived(page.params.channelId ?? null);
 
     const manager = getVoiceRoom();
 
     onMount(() => {
-        api.chat.channels.get().then((ch) => {
-            if (ch.response.ok && ch.data) {
-                channels = ch.data;
-                // Seed voice state store with initial data so it's available immediately
-                for (const channel of ch.data) {
-                    if (channel.voiceState) {
-                        voiceStateStore.seed(channel.voiceState);
-                    }
-                }
-                if (channels.length > 0 && !selectedChannel) {
-                    selectedChannel = channels[0];
+        channelStore.loadChannels().then(() => {
+            // Seed voice state store with initial data so it's available immediately
+            for (const channel of channelStore.channels()) {
+                if (channel.voiceState) {
+                    voiceStateStore.seed(channel.voiceState);
                 }
             }
         });
@@ -45,8 +39,8 @@
             <div class="flex items-center gap-2">
                 <ChannelEntry
                     {channel}
-                    selected={selectedChannel?.roomId === channel.roomId}
-                    onclick={() => (selectedChannel = channel)}
+                    selected={selectedRoomId === channel.roomId}
+                    onclick={() => goto(`/channel/${channel.roomId}`)}
                 />
                 <CallButton {channel} {manager} />
             </div>
@@ -54,7 +48,7 @@
     </div>
     {#snippet contextMenuContent()}
         <CustomContextMenuItem>
-            <div>Channel erstellen</div>
+            <button onclick={() => channelActions.createChannel()}>Channel erstellen</button>
         </CustomContextMenuItem>
     {/snippet}
 </CustomContextMenu>

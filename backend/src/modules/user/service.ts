@@ -2,21 +2,21 @@ import { db } from '../../db'
 import type { RedactedUser, User } from '../../db/schema'
 import { user } from '../../db/schema'
 import { eq } from 'drizzle-orm'
-import { NotFoundError, InternalError } from '../../lib/errors'
+import { ok, err, type Result, type NotFoundError, type InternalError } from '../../lib/result'
 
 export abstract class UserService {
-    static async getUserById (id: string) : Promise<User> {
+    static async getUserById (id: string) : Promise<Result<User, NotFoundError>> {
         const [userData] = await db
             .select()
             .from(user)
             .where(eq(user.id, id))
             .limit(1)
 
-        if (!userData) throw new NotFoundError('User not found')
-        return userData
+        if (!userData) return err({ status: 404, code: 'NOT_FOUND', message: 'User not found' })
+        return ok(userData)
     }
 
-    static async getRedactedUserById (id: string) : Promise<RedactedUser> {
+    static async getRedactedUserById (id: string) : Promise<Result<RedactedUser, NotFoundError>> {
         const [userData] = await db
             .select({
                 id: user.id,
@@ -26,11 +26,11 @@ export abstract class UserService {
             .from(user)
             .where(eq(user.id, id))
             .limit(1)
-        if (!userData) throw new NotFoundError('User not found')
-        return userData
+        if (!userData) return err({ status: 404, code: 'NOT_FOUND', message: 'User not found' })
+        return ok(userData)
     }
 
-    static async getUserAsUser(currentUserId: string, targetUserId: string) : Promise<RedactedUser|User> {
+    static async getUserAsUser(currentUserId: string, targetUserId: string) : Promise<Result<RedactedUser|User, NotFoundError>> {
         if (currentUserId === targetUserId) {
             return await this.getUserById(targetUserId)
         }else {
@@ -38,7 +38,7 @@ export abstract class UserService {
         }
     }
 
-    static async upsertUserAsSystem (data: { id: string; name: string; email: string; emailVerified?: boolean; image?: string|null; groups?: string }) : Promise<User> {
+    static async upsertUserAsSystem (data: { id: string; name: string; email: string; emailVerified?: boolean; image?: string|null; groups?: string }) : Promise<Result<User, InternalError>> {
         const [result] = await db
             .insert(user)
             .values(data)
@@ -48,8 +48,8 @@ export abstract class UserService {
             })
             .returning()
 
-        if (!result) throw new InternalError('Failed to upsert user')    
+        if (!result) return err({ status: 500, code: 'INTERNAL_ERROR', message: 'Failed to upsert user' })
 
-        return result
+        return ok(result)
     }
 }
