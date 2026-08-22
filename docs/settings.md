@@ -1,6 +1,6 @@
 # Settings
 
-Mit Settings meine ich die Servereinstellungen. Nutzereinstellungen nenne ich Preferenzen.
+Mit Settings meine ich die Servereinstellungen. Nutzereinstellungen nenne ich User Settings.
 
 ## Allgemeine Einstellungen
 - Servername

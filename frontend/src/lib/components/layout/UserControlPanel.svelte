@@ -16,9 +16,15 @@
     import Settings from "@lucide/svelte/icons/settings";
     import PhoneOff from "@lucide/svelte/icons/phone-off";
     import { toaster } from "$lib/toaster";
+    import CustomDialog from "../customdialog/CustomDialog.svelte";
+    import UserSettingsView from "../settings/UserSettingsView.svelte";
+    import { getClientSettings } from "$lib/settings/client-settings.svelte";
 
     const logger = createLogger("user-control-panel");
     const manager = getVoiceRoom();
+    const settings = getClientSettings();
+
+    let settingsOpen = $state(false);
 
     const user = $derived(page.data.user ?? null);
 
@@ -139,7 +145,7 @@
                     <HeadphoneOff class="w-4 h-4" />
                 {/if}
             </button>
-            <button class="hover:shadow-md rounded-md p-1" title="Settings" onclick={logout}>
+            <button class="hover:shadow-md rounded-md p-1" title="Settings" onclick={() => settingsOpen = true}>
                 <Settings class="w-4 h-4" />
             </button>
             <!--<Lightswitch />-->
@@ -155,7 +161,18 @@
                 use:attachTrack={participant.microphoneTrack?.track}
                 autoplay
                 muted={!manager.canHear}
+                volume={settings.outputVolume / 100}
             ></audio>
         {/if}
     {/each}
 {/if}
+
+<CustomDialog bind:open={settingsOpen} contentProps={{ interactOutsideBehavior: "close" }}>
+    {#snippet title()}
+        <p>User Settings</p>
+    {/snippet}
+    {#snippet description()}
+        <p>Manage your profile and client preferences.</p>
+    {/snippet}
+    <UserSettingsView />
+</CustomDialog>

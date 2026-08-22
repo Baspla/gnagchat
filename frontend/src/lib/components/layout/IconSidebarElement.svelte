@@ -16,7 +16,10 @@
 
     
     const isActive = (href: string) => {
-        if (href === "/") return page.url.pathname === "/";
+        if (href === "/"){ 
+            // Special case für /channel
+            return page.url.pathname === "/" || page.url.pathname.startsWith("/channel");
+        }
         return page.url.pathname.startsWith(href);
     };
 </script>

@@ -19,7 +19,7 @@
     description,
     children,
     cancelLabel = "Abbrechen",
-    actionLabel = "Löschen",
+    actionLabel = "Bestätigen",
     variant = "primary",
     onAction,
     ...restProps
