@@ -8,8 +8,8 @@
     import ChannelEntry from "$lib/components/channellist/ChannelEntry.svelte";
     import CallButton from "$lib/components/channellist/CallButton.svelte";
     import { channelActions } from "$lib/components/channellist/channel-actions.svelte";
-    import CustomContextMenu from "../CustomContextMenu.svelte";
-    import CustomContextMenuItem from "../CustomContextMenuItem.svelte";
+    import CustomContextMenu from "../customcontext/CustomContextMenu.svelte";
+    import CustomContextMenuItem from "../customcontext/CustomContextMenuItem.svelte";
 
     let channels = $derived(channelStore.channels());
 

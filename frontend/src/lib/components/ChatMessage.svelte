@@ -2,8 +2,8 @@
     import type { DtoChatMessage } from "$shared/dto";
     import { ContextMenu } from "bits-ui";
     import FormattedTime from "./FormattedTime.svelte";
-    import CustomContextMenu from "./CustomContextMenu.svelte";
-    import CustomContextMenuItem from "./CustomContextMenuItem.svelte";
+    import CustomContextMenu from "./customcontext/CustomContextMenu.svelte";
+    import CustomContextMenuItem from "./customcontext/CustomContextMenuItem.svelte";
     let {
         message,
     }: {

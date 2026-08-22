@@ -3,8 +3,8 @@
     import type { DtoChannel } from "$shared/dto/chat";
     import { voiceStateStore } from "$lib/voice/voice-state-store.svelte";
     import VoiceUserList from "$lib/components/channellist/VoiceUserList.svelte";
-    import CustomContextMenu from "../CustomContextMenu.svelte";
-    import CustomContextMenuItem from "../CustomContextMenuItem.svelte";
+    import CustomContextMenu from "../customcontext/CustomContextMenu.svelte";
+    import CustomContextMenuItem from "../customcontext/CustomContextMenuItem.svelte";
     import { channelActions } from "$lib/components/channellist/channel-actions.svelte";
 
     let {
