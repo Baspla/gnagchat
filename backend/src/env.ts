@@ -39,4 +39,5 @@ export const env = {
     CENTRIFUGO_API_KEY: readEnv('GNAGCHAT_CENTRIFUGO_API_KEY') ?? 'default_http_api_key',
     DISCORD_WEBHOOK_URL: readEnv('GNAGCHAT_DISCORD_WEBHOOK_URL') ?? '',
     LOG_LEVEL: readEnv('GNAGCHAT_LOG_LEVEL') ?? 'info',
+    BETTER_AUTH_LOG_LEVEL: readEnv('GNAGCHAT_BETTER_AUTH_LOG_LEVEL') ?? 'info',
 };

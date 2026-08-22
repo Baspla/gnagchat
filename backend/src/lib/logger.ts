@@ -9,7 +9,7 @@ const LEVELS: Record<LogLevel, number> = {
     debug: 3,
 };
 
-const configuredLevel: LogLevel =
+export const configuredLevel: LogLevel =
     (env.LOG_LEVEL as LogLevel | undefined) ?? "info";
 const currentThreshold = LEVELS[configuredLevel] ?? LEVELS.info;
 

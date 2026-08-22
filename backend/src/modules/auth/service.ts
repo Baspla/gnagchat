@@ -21,6 +21,10 @@ export const auth = betterAuth({
 			},
 		}
 	},
+	logger: {
+		level: env.BETTER_AUTH_LOG_LEVEL as "error" | "warn" | "info" | "debug" || "info",
+		disabled: false,
+	},
 	databaseHooks: {
 		user: {
 			create: {
