@@ -5,7 +5,7 @@
     import MessageCircle from "@lucide/svelte/icons/message-circle";
     import Folder from "@lucide/svelte/icons/folder";
     import Phone from "@lucide/svelte/icons/phone";
-    import MessageSquareQuote from "@lucide/svelte/icons/message-square-quote";
+    import { Settings } from "@lucide/svelte";
 </script>
 
 <aside
@@ -16,8 +16,4 @@
     <IconSidebarElement href="/dms" disabled><MessageCircle class="w-5 h-5" /></IconSidebarElement>
 
     <IconSidebarElement href="/files" disabled><Folder class="w-5 h-5" /></IconSidebarElement>
-
-    <IconSidebarElement href="/calldebug"><Phone class="w-5 h-5" /></IconSidebarElement>
-
-    <IconSidebarElement href="/dialogtest"><MessageSquareQuote class="w-5 h-5" /></IconSidebarElement>
 </aside>

@@ -1,10 +1,9 @@
 <script lang="ts">
     import { authClient } from "$lib/auth-client";
     import { attachTrack } from "$lib/livekit.svelte";
-    import { ConnectionState } from "livekit-client";
+    import { ConnectionQuality, ConnectionState } from "livekit-client";
     import { getVoiceRoom } from "$lib/voice/voice-context.svelte";
     import { page } from "$app/state";
-    import Lightswitch from "../Lightswitch.svelte";
     import { createLogger } from "$lib/logger";
     import Link from "@lucide/svelte/icons/link";
     import Monitor from "@lucide/svelte/icons/monitor";
@@ -19,6 +18,18 @@
     import CustomDialog from "../customdialog/CustomDialog.svelte";
     import UserSettingsView from "../settings/UserSettingsView.svelte";
     import { getClientSettings } from "$lib/settings/client-settings.svelte";
+    import {
+    MailPlus,
+    Maximize,
+    MessageCircleQuestionMark,
+        Wifi,
+        WifiHigh,
+        WifiLow,
+        WifiSync,
+        WifiZero,
+        ZodiacGemini,
+    } from "@lucide/svelte";
+    import { goto } from "$app/navigation";
 
     const logger = createLogger("user-control-panel");
     const manager = getVoiceRoom();
@@ -58,60 +69,120 @@
         try {
             await navigator.clipboard.writeText(inviteUrl);
             toaster.success({
-                title: "Invite Link Copied",
-                description: "The invite link has been copied to your clipboard.",
-                duration: 3000
+                title: "Einladungslink kopiert",
+                description:
+                    "Der Einladungslink wurde in die Zwischenablage kopiert.",
+                duration: 3000,
             });
             logger.info("invite link copied to clipboard", { inviteUrl });
         } catch (error) {
-            logger.error("failed to copy invite link", { error: String(error) });
+            logger.error("failed to copy invite link", {
+                error: String(error),
+            });
         }
     }
+
+    async function openFullCallView() {
+        goto('/call');
+    }
+
 </script>
 
 <!-- Voice / Status Row -->
 
-<footer
-    class=" flex flex-col justify-center p-3 gap-1"
->
+<footer class=" flex flex-col justify-center p-3 gap-1">
     <div class="flex items-center justify-between">
         {#if manager.state === ConnectionState.Disconnected}
             <div></div>
         {:else if manager.state === ConnectionState.Connecting}
             <p class="text-gray-500 text-center">Connecting...</p>
-            <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
+            <button
+                class="hover:shadow-md rounded-md"
+                title="Disconnect"
+                onclick={leaveRoom}
+            >
                 <PhoneOff class="w-4 h-4" />
             </button>
         {:else if manager.state === ConnectionState.Connected}
             <div class="flex items-center gap-2">
-                <div
-                    class="w-2 h-2 rounded-full bg-green-500"
-                    title="Connected"
-                ></div>
-                <span class="truncate">{manager.roomDisplayName}</span>
-                <button class="hover:shadow-md rounded-md text-xs" title="Copy invite link" onclick={copyInviteLink}>
-                    <Link class="w-4 h-4" />
-                </button>
+                {#if manager.localParticipant?.connectionQuality === ConnectionQuality.Excellent}
+                    <Wifi
+                        class="w-5 h-5 text-green-500"
+                        title="Connection Quality: Excellent"
+                    />
+                {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Good}
+                    <WifiHigh
+                        class="w-5 h-5 text-yellow-500"
+                        title="Connection Quality: Good"
+                    />
+                {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Poor}
+                    <WifiLow
+                        class="w-5 h-5 text-red-500"
+                        title="Connection Quality: Poor"
+                    />
+                {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Lost}
+                    <WifiSync
+                        class="w-5 h-5 text-red-500 animate-pulse"
+                        title="Connection Quality: Lost"
+                    />
+                {:else}
+                    <ZodiacGemini
+                        class="w-5 h-5 text-gray-500"
+                        title="Connection Quality: Unknown"
+                    />
+                {/if}
+                {#if manager.roomDisplayName}
+                    <button class="truncate hover:underline" onclick={openFullCallView}>{manager.roomDisplayName}</button>
+                {:else}
+                    <span class="">Voice Room</span>
+                {/if}
             </div>
             <div class="flex items-center gap-2">
-                <button class="hover:shadow-md rounded-md p-1" title="Share Screen" onclick={toggleScreenShare}>
+                <button
+                        class="hover:shadow-md rounded-md "
+                        title="Copy invite link"
+                        onclick={copyInviteLink}
+                    >
+                    <MailPlus class="w-4 h-4" />
+                </button>
+                <button
+                    class="hover:shadow-md rounded-md p-1"
+                    title="Share Screen"
+                    onclick={toggleScreenShare}
+                >
                     <Monitor class="w-4 h-4" />
                 </button>
-                <button class="hover:shadow-md rounded-md p-1" title="Camera" onclick={toggleCamera}>
+                <button
+                    class="hover:shadow-md rounded-md p-1"
+                    title="Camera"
+                    onclick={toggleCamera}
+                >
                     <Camera class="w-4 h-4" />
                 </button>
-                <button class="hover:shadow-md rounded-md p-1" title="Leave Room" onclick={leaveRoom}>
+                <button
+                    class="hover:shadow-md rounded-md p-1"
+                    title="Leave Room"
+                    onclick={leaveRoom}
+                >
                     <PhoneOff class="w-4 h-4" />
                 </button>
             </div>
         {:else if manager.state === ConnectionState.Reconnecting}
             <p class="text-yellow-500 text-center">Reconnecting...</p>
-            <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
+            <button
+                class="hover:shadow-md rounded-md"
+                title="Disconnect"
+                onclick={leaveRoom}
+            >
                 <PhoneOff class="w-4 h-4" />
             </button>
         {:else}
             <p class="text-gray-500 text-center">{manager.state}</p>
-            <button class="hover:shadow-md rounded-md" title="Disconnect" onclick={leaveRoom}>
+            <button
+                class="hover:shadow-md rounded-md"
+                title="Disconnect"
+                onclick={leaveRoom}
+            >
                 <PhoneOff class="w-4 h-4" />
             </button>
         {/if}
@@ -131,24 +202,37 @@
         </div>
 
         <div class="flex items-center gap-2">
-            <button class="hover:shadow-md rounded-md p-1" title="Mute" onclick={toggleMute} class:bg-error-500={!manager.canSpeak}>
+            <button
+                class="hover:shadow-md rounded-md p-1"
+                title="Mute"
+                onclick={toggleMute}
+                class:bg-error-500={!manager.canSpeak}
+            >
                 {#if manager.canSpeak}
                     <Mic class="w-4 h-4" />
                 {:else}
                     <MicOff class="w-4 h-4" />
                 {/if}
             </button>
-            <button class="hover:shadow-md rounded-md p-1" title="Deafen" onclick={toggleDeafen} class:bg-error-500={!manager.canHear}>
+            <button
+                class="hover:shadow-md rounded-md p-1"
+                title="Deafen"
+                onclick={toggleDeafen}
+                class:bg-error-500={!manager.canHear}
+            >
                 {#if manager.canHear}
                     <Headphones class="w-4 h-4" />
                 {:else}
                     <HeadphoneOff class="w-4 h-4" />
                 {/if}
             </button>
-            <button class="hover:shadow-md rounded-md p-1" title="Settings" onclick={() => settingsOpen = true}>
+            <button
+                class="hover:shadow-md rounded-md p-1"
+                title="Settings"
+                onclick={() => (settingsOpen = true)}
+            >
                 <Settings class="w-4 h-4" />
             </button>
-            <!--<Lightswitch />-->
         </div>
     </div>
 </footer>
@@ -167,7 +251,10 @@
     {/each}
 {/if}
 
-<CustomDialog bind:open={settingsOpen} contentProps={{ interactOutsideBehavior: "close" }}>
+<CustomDialog
+    bind:open={settingsOpen}
+    contentProps={{ interactOutsideBehavior: "close" }}
+>
     {#snippet title()}
         <p>User Settings</p>
     {/snippet}

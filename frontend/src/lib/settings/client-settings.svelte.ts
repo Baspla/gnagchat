@@ -17,8 +17,8 @@ export class ClientSettings {
     outputVolume = $state(100);
 
     constructor() {
-        this.load();
         $effect.root(() => {
+            this.load();
             $effect(() => {
                 this.persist();
             });
@@ -27,6 +27,10 @@ export class ClientSettings {
 
     private load() {
         try {
+            if (typeof localStorage === "undefined") {
+                console.warn("localStorage is not available, client settings will not be persisted");
+                return;
+            }
             const raw = localStorage.getItem(STORAGE_KEY);
             if (!raw) return;
             const data = JSON.parse(raw) as Partial<ClientSettingsData>;

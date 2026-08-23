@@ -7,10 +7,14 @@
     import { onMount } from "svelte";
     import ChannelEntry from "$lib/components/channellist/ChannelEntry.svelte";
     import CallButton from "$lib/components/channellist/CallButton.svelte";
-    import { channelActions, channelDialogState } from "$lib/components/channellist/channel-actions.svelte";
+    import {
+        channelActions,
+        channelDialogState,
+    } from "$lib/components/channellist/channel-actions.svelte";
     import CustomContextMenu from "../customcontext/CustomContextMenu.svelte";
     import CustomContextMenuItem from "../customcontext/CustomContextMenuItem.svelte";
     import AlertDialog from "../customdialog/AlertDialog.svelte";
+    import { Settings } from "@lucide/svelte";
 
     let channels = $derived(channelStore.channels());
 
@@ -43,9 +47,9 @@
     });
 
     async function createChannelAction() {
-            if (await channelActions.createChannel(createChannelName)) {
-                channelDialogState.createOpen = false;
-            }
+        if (await channelActions.createChannel(createChannelName)) {
+            channelDialogState.createOpen = false;
+        }
     }
 
     async function updateChannelAction() {
@@ -56,12 +60,18 @@
             channelDialogState.editingChannel = null;
         }
     }
-
 </script>
 
 <CustomContextMenu triggerClass="h-full">
     <div class="flex flex-col gap-2 p-2 h-full overflow-y-auto">
-        <h2 class="text-lg font-bold px-2">Gnag Chat</h2>
+        <div class="flex flex-row justify-between items-center gap-2 px-2">
+            <h2 class="text-lg font-bold">Gnag Chat</h2>
+            <a
+                href="/serversettings"
+                class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                ><Settings class="w-4 h-4" />
+            </a>
+        </div>
         {#each channels as channel (channel.roomId)}
             <div class="flex items-center gap-2">
                 <ChannelEntry
@@ -73,7 +83,12 @@
             </div>
         {/each}
     </div>
-    <AlertDialog bind:open={channelDialogState.createOpen} contentProps={{ class: "p-4", interactOutsideBehavior: "close" }} actionLabel="Channel erstellen" onAction={() => createChannelAction()}>
+    <AlertDialog
+        bind:open={channelDialogState.createOpen}
+        contentProps={{ class: "p-4", interactOutsideBehavior: "close" }}
+        actionLabel="Channel erstellen"
+        onAction={() => createChannelAction()}
+    >
         {#snippet title()}
             <p>Channel erstellen</p>
         {/snippet}
@@ -87,7 +102,12 @@
             bind:value={createChannelName}
         />
     </AlertDialog>
-    <AlertDialog bind:open={channelDialogState.editOpen} contentProps={{ class: "p-4", interactOutsideBehavior: "close" }} actionLabel="Speichern" onAction={() => updateChannelAction()}>
+    <AlertDialog
+        bind:open={channelDialogState.editOpen}
+        contentProps={{ class: "p-4", interactOutsideBehavior: "close" }}
+        actionLabel="Speichern"
+        onAction={() => updateChannelAction()}
+    >
         {#snippet title()}
             <p>Channel bearbeiten</p>
         {/snippet}
@@ -103,7 +123,9 @@
     </AlertDialog>
     {#snippet contextMenuContent()}
         <CustomContextMenuItem>
-            <button onclick={() => channelDialogState.createOpen = true}>Channel erstellen</button>
+            <button onclick={() => (channelDialogState.createOpen = true)}
+                >Channel erstellen</button
+            >
         </CustomContextMenuItem>
     {/snippet}
 </CustomContextMenu>

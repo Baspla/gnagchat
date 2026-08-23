@@ -7,13 +7,16 @@
     import { page } from "$app/state";
     import { toaster } from "$lib/toaster";
     import { createLogger } from "$lib/logger";
-    import Lightswitch from "../Lightswitch.svelte";
     import { Switch } from "@skeletonlabs/skeleton-svelte";
+    import { THEMES, THEME_MODES, themeManager } from "$lib/settings/theme.svelte";
     import UserRound from "@lucide/svelte/icons/user-round";
     import MicVocal from "@lucide/svelte/icons/mic-vocal";
     import Bell from "@lucide/svelte/icons/bell";
     import Palette from "@lucide/svelte/icons/palette";
     import LogOut from "@lucide/svelte/icons/log-out";
+    import Sun from "@lucide/svelte/icons/sun";
+    import Moon from "@lucide/svelte/icons/moon";
+    import Monitor from "@lucide/svelte/icons/monitor";
 
     const logger = createLogger("user-settings-view");
     const manager = getVoiceRoom();
@@ -138,7 +141,7 @@
                     <img
                         src={user?.image ?? "/default-avatar.png"}
                         alt="User Avatar"
-                        class="h-16 w-16 rounded-full border-2 border-surface-200"
+                        class="h-16 w-16 rounded-full border-2 border-surface-200-800"
                     />
                     <div>
                         <p class="font-bold">{user?.name ?? "User"}</p>
@@ -285,15 +288,60 @@
                 </p>
             </div>
         {:else if activeSection === "appearance"}
-            <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between gap-4">
-                    <div>
-                        <p class="font-semibold">Dark Mode</p>
-                        <p class="text-sm text-surface-contrast-400-800">
-                            Light Mode sieht echt nicht gut aus.
-                        </p>
+            <div class="flex flex-col gap-6">
+                <div>
+                    <p class="font-semibold">Farbmodus</p>
+                    <p class="text-sm text-surface-contrast-400-800">
+                        Wähle zwischen hellem, dunklem oder dem Systemmodus.
+                    </p>
+                    <div class="mt-2 grid grid-cols-3 gap-1 rounded-md bg-surface-100-900 p-1">
+                        {#each THEME_MODES as modeOption (modeOption.id)}
+                            <button
+                                class="flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-sm transition-colors
+                                    {themeManager.mode === modeOption.id
+                                        ? 'bg-primary-500 text-primary-contrast-500'
+                                        : 'hover:bg-surface-200-800 '}"
+                                onclick={() => themeManager.mode = modeOption.id}
+                            >
+                                {#if modeOption.id === "light"}
+                                    <Sun class="h-4 w-4" />
+                                {:else if modeOption.id === "dark"}
+                                    <Moon class="h-4 w-4" />
+                                {:else}
+                                    <Monitor class="h-4 w-4" />
+                                {/if}
+                                {modeOption.label}
+                            </button>
+                        {/each}
                     </div>
-                    <Lightswitch />
+                </div>
+
+                <div>
+                    <p class="font-semibold">Farbschema</p>
+                    <p class="text-sm text-surface-contrast-400-800">
+                        Wähle das Farbschema der Anwendung.
+                    </p>
+                    <div class="mt-2 grid grid-cols-3 gap-2">
+                        {#each THEMES as themeOption (themeOption.id)}
+                            <button
+                                class="flex flex-col gap-1.5 rounded-md border p-2 text-left text-sm transition-colors
+                                    {themeManager.theme === themeOption.id
+                                        ? 'border-primary-500 ring-1 ring-primary-500'
+                                        : 'border-surface-200-800 hover:border-surface-400-600'}"
+                                onclick={() => themeManager.theme = themeOption.id}
+                            >
+                                <span
+                                    data-theme={themeOption.id}
+                                    class="flex h-8 overflow-hidden rounded"
+                                >
+                                    <span class="flex-1 bg-primary-500"></span>
+                                    <span class="flex-1 bg-secondary-500"></span>
+                                    <span class="flex-1 bg-surface-500"></span>
+                                </span>
+                                {themeOption.label}
+                            </button>
+                        {/each}
+                    </div>
                 </div>
             </div>
         {/if}
