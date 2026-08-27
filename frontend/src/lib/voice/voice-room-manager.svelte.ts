@@ -53,6 +53,10 @@ export class VoiceRoomManager {
         return this.room.state === ConnectionState.Connected;
     }
 
+    get isInCall(): boolean {
+        return this.room.state !== ConnectionState.Disconnected;
+    }
+
     get isConnecting() {
         return this.room.state === ConnectionState.Connecting;
     }
@@ -128,45 +132,45 @@ export class VoiceRoomManager {
     }
 
     private async syncAudioState() {
+        const localParticipant = this.room.localParticipant;
+        if (!this.isInCall || !localParticipant) return;
         try {
-            if (this.room.localParticipant) {
-                await this.room.localParticipant.setMicrophoneEnabled(
-                    this.canSpeak,
-                    {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: true,
-                    },
-                );
-            }
+            await localParticipant.setMicrophoneEnabled(
+                this.canSpeak,
+                {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                },
+            );
         } catch (error) {
             logger.error("error syncing audio state", { error: String(error) });
         }
     }
 
     async toggleCamera() {
+        const localParticipant = this.room.localParticipant;
+        if (!this.isInCall || !localParticipant) return;
         try {
-            if (this.room.localParticipant) {
-                await this.room.localParticipant.setCameraEnabled(
-                    !this.room.localParticipant.isCameraEnabled,
-                );
-            }
+            await localParticipant.setCameraEnabled(
+                !localParticipant.isCameraEnabled,
+            );
         } catch (error) {
             logger.error("error toggling camera", { error: String(error) });
         }
     }
 
     async toggleScreenShare() {
+        const localParticipant = this.room.localParticipant;
+        if (!this.isInCall || !localParticipant) return;
         try {
-            if (this.room.localParticipant) {
-                await this.room.localParticipant.setScreenShareEnabled(
-                    !this.room.localParticipant.isScreenShareEnabled,
-                    {
-                        audio: true,
-                        contentHint: "detail",
-                    },
-                );
-            }
+            await localParticipant.setScreenShareEnabled(
+                !localParticipant.isScreenShareEnabled,
+                {
+                    audio: true,
+                    contentHint: "detail",
+                },
+            );
         } catch (error) {
             logger.error("error toggling screen share", { error: String(error) });
         }

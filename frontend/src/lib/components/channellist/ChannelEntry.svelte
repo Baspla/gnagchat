@@ -3,9 +3,9 @@
     import type { DtoChannel } from "$shared/dto/chat";
     import { voiceStateStore } from "$lib/voice/voice-state-store.svelte";
     import VoiceUserList from "$lib/components/channellist/VoiceUserList.svelte";
-    import CustomContextMenu from "../CustomContextMenu.svelte";
-    import CustomContextMenuItem from "../CustomContextMenuItem.svelte";
-    import { channelActions } from "$lib/components/channellist/channel-actions.svelte";
+    import CustomContextMenu from "../customcontext/CustomContextMenu.svelte";
+    import CustomContextMenuItem from "../customcontext/CustomContextMenuItem.svelte";
+    import { channelActions, channelDialogState } from "$lib/components/channellist/channel-actions.svelte";
 
     let {
         channel,
@@ -45,11 +45,17 @@
     </button>
     {#snippet contextMenuContent()}
         <CustomContextMenuItem>
-            <button onclick={() => channelActions.createChannel()}> Channel erstellen </button>
+            <button onclick={() => channelDialogState.createOpen = true}> Channel erstellen </button>
         </CustomContextMenuItem>
-        <CustomContextMenuItem disabled>
-            <!-- TODO open the edit dialog for the channel via channelActions -->
-            <button> Channel bearbeiten </button>
+        <CustomContextMenuItem>
+            <button
+                onclick={() => {
+                    channelDialogState.editingChannel = channel;
+                    channelDialogState.editOpen = true;
+                }}
+            >
+                Channel bearbeiten
+            </button>
         </CustomContextMenuItem>
         <CustomContextMenuItem>
             <button onclick={() => channelActions.deleteChannel(channel)}> Channel löschen </button>

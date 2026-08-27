@@ -341,7 +341,7 @@ export class ReactiveRoom {
     state = $state(ConnectionState.Disconnected);
     metadata = $state('');
     participants = new SvelteMap<string, ReactiveParticipant>();
-    localParticipant = $state<ReactiveLocalParticipant | undefined>();
+    localParticipant = $state<ReactiveLocalParticipant>();
     activeSpeakers = $state<ReactiveParticipant[]>([]);
     isRecording = $state(false);
     canPlaybackAudio = $state(true);
