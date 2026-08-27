@@ -49,6 +49,7 @@
     async function createChannelAction() {
         if (await channelActions.createChannel(createChannelName)) {
             channelDialogState.createOpen = false;
+            createChannelName = "";
         }
     }
 
@@ -58,6 +59,7 @@
         if (await channelActions.updateChannel(editing, editChannelName)) {
             channelDialogState.editOpen = false;
             channelDialogState.editingChannel = null;
+            editChannelName = "";
         }
     }
 </script>
