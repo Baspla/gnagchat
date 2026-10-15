@@ -55,12 +55,15 @@ CREATE TABLE `verification` (
 --> statement-breakpoint
 CREATE INDEX `verification_identifier_idx` ON `verification` (`identifier`);--> statement-breakpoint
 CREATE TABLE `channel_metadata` (
-	`room_id` text PRIMARY KEY NOT NULL,
+	`club_id` text NOT NULL,
+	`room_id` text,
 	`name` text NOT NULL,
-	`acl_group_id` text,
+	PRIMARY KEY(`club_id`, `room_id`),
+	FOREIGN KEY (`club_id`) REFERENCES `club`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`room_id`) REFERENCES `room`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `channel_metadata_name_idx` ON `channel_metadata` (`club_id`,`name`);--> statement-breakpoint
 CREATE TABLE `dm_metadata` (
 	`room_id` text PRIMARY KEY NOT NULL,
 	`user_a_id` text NOT NULL,
@@ -98,26 +101,29 @@ CREATE TABLE `room_read_state` (
 	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE TABLE `channel_role_override` (
-	`channel_id` text NOT NULL,
-	`role_id` text NOT NULL,
-	`allowed` text DEFAULT '[]' NOT NULL,
-	`denied` text DEFAULT '[]' NOT NULL,
-	PRIMARY KEY(`channel_id`, `role_id`),
-	FOREIGN KEY (`channel_id`) REFERENCES `channel_metadata`(`room_id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`role_id`) REFERENCES `role`(`id`) ON UPDATE no action ON DELETE cascade
-);
---> statement-breakpoint
-CREATE TABLE `role` (
+CREATE TABLE `club` (
 	`id` text PRIMARY KEY NOT NULL,
+	`created_at` integer NOT NULL,
 	`name` text NOT NULL,
-	`permissions` text DEFAULT '[]' NOT NULL
+	`description` text,
+	`is_default` integer NOT NULL,
+	`owner_id` text,
+	`channel_order` text NOT NULL,
+	FOREIGN KEY (`owner_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE set null
 );
 --> statement-breakpoint
-CREATE TABLE `user_role` (
+CREATE TABLE `club_membership` (
+	`club_id` text NOT NULL,
 	`user_id` text NOT NULL,
-	`role_id` text NOT NULL,
-	PRIMARY KEY(`user_id`, `role_id`),
-	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY (`role_id`) REFERENCES `role`(`id`) ON UPDATE no action ON DELETE cascade
+	`role` text NOT NULL,
+	PRIMARY KEY(`club_id`, `user_id`),
+	FOREIGN KEY (`club_id`) REFERENCES `club`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE TABLE `server_settings` (
+	`id` text PRIMARY KEY NOT NULL,
+	`created_at` integer NOT NULL,
+	`club_order` text NOT NULL,
+	CONSTRAINT "server_settings_singleton_check" CHECK(("server_settings"."id" = 'singleton'))
 );

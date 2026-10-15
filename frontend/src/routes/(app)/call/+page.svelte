@@ -1,7 +1,7 @@
 <script lang="ts">
   import { setPageTitle } from "$lib/utils";
   import { onMount } from "svelte";
-  import CallDebugger from "$lib/components/voice/CallDebugger.svelte";
+  import CallView from "$lib/components/voice/CallView.svelte";
   import AppLayout from "$lib/components/layout/AppLayout.svelte";
     import ChannelList from "$lib/components/channellist/ChannelList.svelte";
 
@@ -14,5 +14,5 @@
   {#snippet sidebar()}
     <ChannelList />
   {/snippet}
-  <CallDebugger />
+  <CallView />
 </AppLayout>

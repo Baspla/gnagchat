@@ -16,4 +16,6 @@
     <IconSidebarElement href="/dms" disabled><MessageCircle class="w-5 h-5" /></IconSidebarElement>
 
     <IconSidebarElement href="/files" disabled><Folder class="w-5 h-5" /></IconSidebarElement>
+
+    <IconSidebarElement href="/call"><Phone class="w-5 h-5" /></IconSidebarElement>
 </aside>

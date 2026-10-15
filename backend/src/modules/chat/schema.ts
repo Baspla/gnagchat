@@ -1,23 +1,23 @@
-// db/schema/chat.ts
 import { sqliteTable, text, integer, uniqueIndex, primaryKey, check, index } from 'drizzle-orm/sqlite-core';
 import { user } from '../user/schema';
 import { sql } from 'drizzle-orm/sql';
+import { club } from '../club/schema';
 
-// 1. The Core Supertype (Lifecycle & Shared State)
 export const room = sqliteTable('room', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   type: text('type', { enum: ['channel', 'dm'] }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
 
-// 2. Subtype Extension: Channel Metadata
 export const channelMetadata = sqliteTable('channel_metadata', {
-  roomId: text('room_id').primaryKey().references(() => room.id, { onDelete: 'cascade' }),
+  clubId: text('club_id').references(() => club.id, { onDelete: 'cascade' }).notNull(),
+  roomId: text('room_id').references(() => room.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
-  aclGroupId: text('acl_group_id'),
-});
+}, (table) => [
+  primaryKey({ columns: [table.clubId, table.roomId] }),
+  uniqueIndex('channel_metadata_name_idx').on(table.clubId, table.name),
+]);
 
-// 3. Subtype Extension: DM Metadata
 export const dmMetadata = sqliteTable('dm_metadata', {
   roomId: text('room_id').primaryKey().references(() => room.id, { onDelete: 'cascade' }),
   userAId: text('user_a_id').references(() => user.id, { onDelete: 'cascade' }).notNull(),
@@ -27,7 +27,6 @@ export const dmMetadata = sqliteTable('dm_metadata', {
   check('dm_metadata_participants_order_check', sql`(${table.userAId} < ${table.userBId})`),
 ]);
 
-// 4. The Unified Messages Table
 export const message = sqliteTable('message', {
     id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
     roomId: text('room_id').references(() => room.id, { onDelete: 'cascade' }).notNull(),

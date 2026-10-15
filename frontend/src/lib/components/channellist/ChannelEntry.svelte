@@ -28,7 +28,7 @@
         class:bg-surface-300-700={selected}
     >
         <div class="flex items-center gap-2">
-            <span>{channel.name}</span>
+            <span>{channel.name} </span>
             {#if voiceState && voiceState.userCount > 0}
                 <span
                     class="inline-flex items-center gap-1 text-green-400 text-xs"

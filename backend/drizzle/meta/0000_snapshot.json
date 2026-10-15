@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "0fb0e446-7636-474e-9953-3fa37e8ac2fc",
+  "id": "f087e194-bd6c-4536-8433-3803ed9431f5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "user": {
@@ -376,11 +376,18 @@
     "channel_metadata": {
       "name": "channel_metadata",
       "columns": {
+        "club_id": {
+          "name": "club_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "room_id": {
           "name": "room_id",
           "type": "text",
-          "primaryKey": true,
-          "notNull": true,
+          "primaryKey": false,
+          "notNull": false,
           "autoincrement": false
         },
         "name": {
@@ -389,17 +396,32 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
-        },
-        "acl_group_id": {
-          "name": "acl_group_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "channel_metadata_name_idx": {
+          "name": "channel_metadata_name_idx",
+          "columns": [
+            "club_id",
+            "name"
+          ],
+          "isUnique": true
+        }
+      },
       "foreignKeys": {
+        "channel_metadata_club_id_club_id_fk": {
+          "name": "channel_metadata_club_id_club_id_fk",
+          "tableFrom": "channel_metadata",
+          "tableTo": "club",
+          "columnsFrom": [
+            "club_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "channel_metadata_room_id_room_id_fk": {
           "name": "channel_metadata_room_id_room_id_fk",
           "tableFrom": "channel_metadata",
@@ -414,7 +436,15 @@
           "onUpdate": "no action"
         }
       },
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "channel_metadata_club_id_room_id_pk": {
+          "columns": [
+            "club_id",
+            "room_id"
+          ],
+          "name": "channel_metadata_club_id_room_id_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
@@ -682,88 +712,20 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "channel_role_override": {
-      "name": "channel_role_override",
-      "columns": {
-        "channel_id": {
-          "name": "channel_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "role_id": {
-          "name": "role_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "allowed": {
-          "name": "allowed",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'[]'"
-        },
-        "denied": {
-          "name": "denied",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'[]'"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "channel_role_override_channel_id_channel_metadata_room_id_fk": {
-          "name": "channel_role_override_channel_id_channel_metadata_room_id_fk",
-          "tableFrom": "channel_role_override",
-          "tableTo": "channel_metadata",
-          "columnsFrom": [
-            "channel_id"
-          ],
-          "columnsTo": [
-            "room_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "channel_role_override_role_id_role_id_fk": {
-          "name": "channel_role_override_role_id_role_id_fk",
-          "tableFrom": "channel_role_override",
-          "tableTo": "role",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "channel_role_override_channel_id_role_id_pk": {
-          "columns": [
-            "channel_id",
-            "role_id"
-          ],
-          "name": "channel_role_override_channel_id_role_id_pk"
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "role": {
-      "name": "role",
+    "club": {
+      "name": "club",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -774,33 +736,29 @@
           "notNull": true,
           "autoincrement": false
         },
-        "permissions": {
-          "name": "permissions",
+        "description": {
+          "name": "description",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'[]'"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "user_role": {
-      "name": "user_role",
-      "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_default": {
+          "name": "is_default",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "role_id": {
-          "name": "role_id",
+        "owner_id": {
+          "name": "owner_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "channel_order": {
+          "name": "channel_order",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -809,9 +767,67 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_role_user_id_user_id_fk": {
-          "name": "user_role_user_id_user_id_fk",
-          "tableFrom": "user_role",
+        "club_owner_id_user_id_fk": {
+          "name": "club_owner_id_user_id_fk",
+          "tableFrom": "club",
+          "tableTo": "user",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "club_membership": {
+      "name": "club_membership",
+      "columns": {
+        "club_id": {
+          "name": "club_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "club_membership_club_id_club_id_fk": {
+          "name": "club_membership_club_id_club_id_fk",
+          "tableFrom": "club_membership",
+          "tableTo": "club",
+          "columnsFrom": [
+            "club_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "club_membership_user_id_user_id_fk": {
+          "name": "club_membership_user_id_user_id_fk",
+          "tableFrom": "club_membership",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -821,32 +837,55 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "user_role_role_id_role_id_fk": {
-          "name": "user_role_role_id_role_id_fk",
-          "tableFrom": "user_role",
-          "tableTo": "role",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "user_role_user_id_role_id_pk": {
+        "club_membership_club_id_user_id_pk": {
           "columns": [
-            "user_id",
-            "role_id"
+            "club_id",
+            "user_id"
           ],
-          "name": "user_role_user_id_role_id_pk"
+          "name": "club_membership_club_id_user_id_pk"
         }
       },
       "uniqueConstraints": {},
       "checkConstraints": {}
+    },
+    "server_settings": {
+      "name": "server_settings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "club_order": {
+          "name": "club_order",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "server_settings_singleton_check": {
+          "name": "server_settings_singleton_check",
+          "value": "(\"server_settings\".\"id\" = 'singleton')"
+        }
+      }
     }
   },
   "views": {},

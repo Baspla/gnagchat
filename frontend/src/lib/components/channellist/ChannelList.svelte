@@ -15,6 +15,7 @@
     import CustomContextMenuItem from "../customcontext/CustomContextMenuItem.svelte";
     import AlertDialog from "../customdialog/AlertDialog.svelte";
     import { Settings } from "@lucide/svelte";
+    import type { DtoVoiceRoom } from "$shared/dto";
 
     let channels = $derived(channelStore.channels());
 
@@ -62,6 +63,9 @@
             editChannelName = "";
         }
     }
+
+    
+    let allRooms : ReadonlyMap<string, DtoVoiceRoom> = $derived(voiceStateStore.allRooms);
 </script>
 
 <CustomContextMenu triggerClass="h-full">
@@ -74,6 +78,14 @@
                 ><Settings class="w-4 h-4" />
             </a>
         </div>
+
+        <div>Rooms</div>
+        {#each allRooms as room}
+            <div class="flex items-center gap-2">
+                Room: {room[0]}
+            </div>
+        {/each}
+
         {#each channels as channel (channel.roomId)}
             <div class="flex items-center gap-2">
                 <ChannelEntry

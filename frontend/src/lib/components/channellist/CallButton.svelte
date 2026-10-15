@@ -1,10 +1,13 @@
 <script lang="ts">
     import PhoneCall from "@lucide/svelte/icons/phone-call";
-    import PhoneOff from "@lucide/svelte/icons/phone-off";
+    import ArrowUpRight from "@lucide/svelte/icons/arrow-up-right";
     import type { DtoChannel } from "$shared/dto/chat";
     import type { VoiceRoomManager } from "$lib/voice/voice-room-manager.svelte";
 
-    let { channel, manager }: {
+    let {
+        channel,
+        manager,
+    }: {
         channel: DtoChannel;
         manager: VoiceRoomManager;
     } = $props();
@@ -15,13 +18,13 @@
 </script>
 
 {#if isCurrentCall}
+    <!-- Open the call view -->
     <button
-        class="btn preset-filled-error-500 p-2 rounded"
-        title="Disconnect from call"
-        aria-label={`Disconnect from ${channel.name}`}
-        onclick={() => manager.leaveRoom()}
+        class="btn preset-filled p-2 rounded"
+        title={`Open call view for ${channel.name}`}
+        aria-label={`Open call view for ${channel.name}`}
     >
-        <PhoneOff class="w-4 h-4" />
+        <ArrowUpRight class="w-4 h-4"/>
     </button>
 {:else}
     <button
