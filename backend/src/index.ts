@@ -62,19 +62,21 @@ export const app = new Elysia()
                     .use(livekitModule)
                     .use(gatewayModule)
             )
-    )
-    .listen(3000);
-
-logger.info('backend running', { port: app.server?.port });
-
-// Graceful shutdown: checkpoint WAL before exit
-const shutdown = async (signal: string) => {
-    logger.info('shutdown signal received', { signal });
-    await closeDb();
-    process.exit(0);
-};
-
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+    );
 
 export type App = typeof app;
+
+if (import.meta.main) {
+    app.listen(3000);
+    logger.info('backend running', { port: app.server?.port });
+
+    // Graceful shutdown: checkpoint WAL before exit.
+    const shutdown = async (signal: string) => {
+        logger.info('shutdown signal received', { signal });
+        await closeDb();
+        process.exit(0);
+    };
+
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+}

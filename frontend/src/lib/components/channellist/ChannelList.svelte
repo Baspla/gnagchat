@@ -70,7 +70,7 @@
 
 <CustomContextMenu triggerClass="h-full">
     <div class="flex flex-col gap-2 p-2 h-full overflow-y-auto">
-        <div class="flex flex-row justify-between items-center gap-2 px-2">
+        <div class="flex flex-row justify-between items-center gap-2 px-2 mb-4 pb-4 border-b border-surface-100-900">
             <h2 class="text-lg font-bold">Gnag Chat</h2>
             <a
                 href="/serversettings"
@@ -79,7 +79,6 @@
             </a>
         </div>
 
-        <div>Rooms</div>
         {#each allRooms as room}
             <div class="flex items-center gap-2">
                 Room: {room[0]}

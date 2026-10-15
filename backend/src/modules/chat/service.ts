@@ -28,8 +28,6 @@ export class ChatService {
      * Checks if a user has permission to view a specific room.
      */
     static async canViewRoomAsUser(userId: string, roomId: string): Promise<boolean> {
-        return true;
-        /*
         const foundRoom = await db.query.room.findFirst({
             where: eq(room.id, roomId)
         });
@@ -38,18 +36,18 @@ export class ChatService {
             return false;
         }
         if (foundRoom.type === 'channel') {
-            return await PermissionService.hasPermissionInChannel(userId, roomId, 'view_channel');
-        } else if (foundRoom.type === 'dm') {
-            const dm = await db.query.directMessage.findFirst({
-                where: and(
-                    eq(directMessage.roomId, roomId),
-                    or(eq(directMessage.userAId, userId), eq(directMessage.userBId, userId))
-                )
-            });
-            return !!dm;
-        } else {
-            return false;
-        }*/
+            // Channel membership and roles are not implemented yet; channels are
+            // currently visible to every authenticated user.
+            return true;
+        }
+
+        const dm = await db.query.dmMetadata.findFirst({
+            where: and(
+                eq(dmMetadata.roomId, roomId),
+                or(eq(dmMetadata.userAId, userId), eq(dmMetadata.userBId, userId))
+            ),
+        });
+        return !!dm;
     }
 
     private static async getRoomTypeAsUser(userId: string, roomId: string): Promise<Result<{ type: 'channel' | 'dm' }, NotFoundError | ForbiddenError>> {
@@ -142,9 +140,10 @@ export class ChatService {
      * Returns a metadata wrapper with hasMore and nextCursor.
      * Scoped as: ...AsUser
      */
-    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50, cursor?: string): Promise<Result<DtoHistoryResponse, BadRequestError>> {
-        // 1. Validate access first
-        await this.canViewRoomAsUser(userId, roomId);
+    static async getHistoryAsUser(userId: string, roomId: string, limit: number = 50, cursor?: string): Promise<Result<DtoHistoryResponse, BadRequestError | ForbiddenError>> {
+        if (!await this.canViewRoomAsUser(userId, roomId)) {
+            return err({ status: 403, code: 'FORBIDDEN', message: 'Insufficient permissions to view this room' });
+        }
 
         // 2. Decode cursor if provided
         let cursorCondition: typeof message.$inferSelect | undefined;
@@ -234,8 +233,10 @@ export class ChatService {
      * Updates the user's watermark read state after validating room access.
      * Scoped as: ...AsUser
      */
-    static async markRoomAsReadAsUser(userId: string, roomId: string): Promise<Result<null>> {
-        await this.canViewRoomAsUser(userId, roomId);
+    static async markRoomAsReadAsUser(userId: string, roomId: string): Promise<Result<null, ForbiddenError>> {
+        if (!await this.canViewRoomAsUser(userId, roomId)) {
+            return err({ status: 403, code: 'FORBIDDEN', message: 'Insufficient permissions to view this room' });
+        }
 
         await db.insert(roomReadState)
             .values({
@@ -255,8 +256,10 @@ export class ChatService {
      * Calculates unread messages for a specific room after validating access.
      * Scoped as: ...AsUser
      */
-    static async getUnreadCountAsUser(userId: string, roomId: string): Promise<Result<number>> {
-        await this.canViewRoomAsUser(userId, roomId);
+    static async getUnreadCountAsUser(userId: string, roomId: string): Promise<Result<number, ForbiddenError>> {
+        if (!await this.canViewRoomAsUser(userId, roomId)) {
+            return err({ status: 403, code: 'FORBIDDEN', message: 'Insufficient permissions to view this room' });
+        }
 
         const readState = await db.query.roomReadState.findFirst({
             where: and(

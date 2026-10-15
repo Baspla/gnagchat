@@ -95,9 +95,11 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
         }),
         auth: true
     })
-    .post('/rooms/:roomId/read', async ({ user, params, chatService }) => {
-        // Infallible (no declared error type)
-        await chatService.markRoomAsReadAsUser(user.id, params.roomId);
+    .post('/rooms/:roomId/read', async ({ user, params, chatService, status }) => {
+        const result = await chatService.markRoomAsReadAsUser(user.id, params.roomId);
+        if (!result.ok) {
+            return status(result.error.status, { error: result.error });
+        }
         return { success: true };
     }, {
         params: t.Object({
@@ -105,9 +107,11 @@ export const chatModule = new Elysia({ prefix: '/chat', name: Modules.CHAT })
         }),
         auth: true
     })
-    .get('/rooms/:roomId/unread', async ({ user, params, chatService }) => {
-        // Infallible (no declared error type)
+    .get('/rooms/:roomId/unread', async ({ user, params, chatService, status }) => {
         const unread = await chatService.getUnreadCountAsUser(user.id, params.roomId);
+        if (!unread.ok) {
+            return status(unread.error.status, { error: unread.error });
+        }
         return { unreadCount: unread.value };
     }, {
         params: t.Object({

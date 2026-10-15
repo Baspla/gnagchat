@@ -24,6 +24,9 @@ export function decodeHistoryCursor(cursor: string): Result<HistoryCursor, BadRe
         if (typeof parsed.createdAt !== 'string' || typeof parsed.id !== 'string') {
             throw new Error('Invalid cursor shape');
         }
+        if (Number.isNaN(Date.parse(parsed.createdAt))) {
+            throw new Error('Invalid cursor timestamp');
+        }
         return ok(parsed);
     } catch {
         return err({ status: 400, code: 'BAD_REQUEST', message: 'Invalid history cursor' });

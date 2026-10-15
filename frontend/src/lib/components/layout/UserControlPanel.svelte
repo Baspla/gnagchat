@@ -90,103 +90,105 @@
 
 <!-- Voice / Status Row -->
 
-<footer class=" flex flex-col justify-center p-3 gap-1">
-    <div class="flex items-center justify-between">
-        {#if manager.state === ConnectionState.Disconnected}
-            <div></div>
-        {:else if manager.state === ConnectionState.Connecting}
-            <p class="text-gray-500 text-center">Connecting...</p>
-            <button
-                class="hover:shadow-md rounded-md"
-                title="Disconnect"
-                onclick={leaveRoom}
-            >
-                <PhoneOff class="w-4 h-4" />
-            </button>
-        {:else if manager.state === ConnectionState.Connected}
-            <div class="flex items-center gap-2">
-                {#if manager.localParticipant?.connectionQuality === ConnectionQuality.Excellent}
-                    <Wifi
-                        class="w-5 h-5 text-green-500"
-                        title="Connection Quality: Excellent"
-                    />
-                {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Good}
-                    <WifiHigh
-                        class="w-5 h-5 text-yellow-500"
-                        title="Connection Quality: Good"
-                    />
-                {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Poor}
-                    <WifiLow
-                        class="w-5 h-5 text-red-500"
-                        title="Connection Quality: Poor"
-                    />
-                {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Lost}
-                    <WifiSync
-                        class="w-5 h-5 text-red-500 animate-pulse"
-                        title="Connection Quality: Lost"
-                    />
-                {:else}
-                    <ZodiacGemini
-                        class="w-5 h-5 text-gray-500"
-                        title="Connection Quality: Unknown"
-                    />
-                {/if}
-                {#if manager.roomDisplayName}
-                    <button class="truncate hover:underline" onclick={openFullCallView}>{manager.roomDisplayName}</button>
-                {:else}
-                    <span class="">Voice Room</span>
-                {/if}
-            </div>
-            <div class="flex items-center gap-2">
+<footer
+    class="mx-2 mb-2 flex flex-col justify-center gap-2 rounded-2xl border border-surface-200-800/60 bg-surface-100-900 p-3 shadow-lg"
+>
+    {#if manager.state !== ConnectionState.Disconnected}
+        <div class="flex items-center justify-between">
+            {#if manager.state === ConnectionState.Connecting}
+                <p class="text-gray-500 text-center">Connecting...</p>
                 <button
-                        class="hover:shadow-md rounded-md "
-                        title="Copy invite link"
-                        onclick={copyInviteLink}
-                    >
-                    <MailPlus class="w-4 h-4" />
-                </button>
-                <button
-                    class="hover:shadow-md rounded-md p-1"
-                    title="Share Screen"
-                    onclick={toggleScreenShare}
-                >
-                    <Monitor class="w-4 h-4" />
-                </button>
-                <button
-                    class="hover:shadow-md rounded-md p-1"
-                    title="Camera"
-                    onclick={toggleCamera}
-                >
-                    <Camera class="w-4 h-4" />
-                </button>
-                <button
-                    class="hover:shadow-md rounded-md p-1"
-                    title="Leave Room"
+                    class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
+                    title="Disconnect"
                     onclick={leaveRoom}
                 >
                     <PhoneOff class="w-4 h-4" />
                 </button>
-            </div>
-        {:else if manager.state === ConnectionState.Reconnecting}
-            <p class="text-yellow-500 text-center">Reconnecting...</p>
-            <button
-                class="hover:shadow-md rounded-md"
-                title="Disconnect"
-                onclick={leaveRoom}
-            >
-                <PhoneOff class="w-4 h-4" />
-            </button>
-        {:else}
-            <p class="text-gray-500 text-center">{manager.state}</p>
-            <button
-                class="hover:shadow-md rounded-md"
-                title="Disconnect"
-                onclick={leaveRoom}
-            >
-                <PhoneOff class="w-4 h-4" />
-            </button>
-        {/if}
-    </div>
+            {:else if manager.state === ConnectionState.Connected}
+                <div class="flex items-center gap-2">
+                    {#if manager.localParticipant?.connectionQuality === ConnectionQuality.Excellent}
+                        <Wifi
+                            class="w-5 h-5 text-green-500"
+                            title="Connection Quality: Excellent"
+                        />
+                    {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Good}
+                        <WifiHigh
+                            class="w-5 h-5 text-yellow-500"
+                            title="Connection Quality: Good"
+                        />
+                    {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Poor}
+                        <WifiLow
+                            class="w-5 h-5 text-red-500"
+                            title="Connection Quality: Poor"
+                        />
+                    {:else if manager.localParticipant?.connectionQuality === ConnectionQuality.Lost}
+                        <WifiSync
+                            class="w-5 h-5 text-red-500 animate-pulse"
+                            title="Connection Quality: Lost"
+                        />
+                    {:else}
+                        <ZodiacGemini
+                            class="w-5 h-5 text-gray-500"
+                            title="Connection Quality: Unknown"
+                        />
+                    {/if}
+                    {#if manager.roomDisplayName}
+                        <button class="truncate hover:underline" onclick={openFullCallView}>{manager.roomDisplayName}</button>
+                    {:else}
+                        <span class="">Voice Room</span>
+                    {/if}
+                </div>
+                <div class="flex items-center gap-2">
+                    <button
+                            class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
+                            title="Copy invite link"
+                            onclick={copyInviteLink}
+                        >
+                        <MailPlus class="w-4 h-4" />
+                    </button>
+                    <button
+                        class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
+                        title="Share Screen"
+                        onclick={toggleScreenShare}
+                    >
+                        <Monitor class="w-4 h-4" />
+                    </button>
+                    <button
+                        class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
+                        title="Camera"
+                        onclick={toggleCamera}
+                    >
+                        <Camera class="w-4 h-4" />
+                    </button>
+                    <button
+                        class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
+                        title="Leave Room"
+                        onclick={leaveRoom}
+                    >
+                        <PhoneOff class="w-4 h-4" />
+                    </button>
+                </div>
+            {:else if manager.state === ConnectionState.Reconnecting}
+                <p class="text-yellow-500 text-center">Reconnecting...</p>
+                <button
+                    class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
+                    title="Disconnect"
+                    onclick={leaveRoom}
+                >
+                    <PhoneOff class="w-4 h-4" />
+                </button>
+            {:else}
+                <p class="text-gray-500 text-center">{manager.state}</p>
+                <button
+                    class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
+                    title="Disconnect"
+                    onclick={leaveRoom}
+                >
+                    <PhoneOff class="w-4 h-4" />
+                </button>
+            {/if}
+        </div>
+    {/if}   
 
     <!-- User Profile & Actions Row -->
     <div class="flex items-center justify-between">
@@ -203,7 +205,7 @@
 
         <div class="flex items-center gap-2">
             <button
-                class="hover:shadow-md rounded-md p-1"
+                class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
                 title="Mute"
                 onclick={toggleMute}
                 class:bg-error-500={!manager.canSpeak}
@@ -215,7 +217,7 @@
                 {/if}
             </button>
             <button
-                class="hover:shadow-md rounded-md p-1"
+                class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
                 title="Deafen"
                 onclick={toggleDeafen}
                 class:bg-error-500={!manager.canHear}
@@ -227,7 +229,7 @@
                 {/if}
             </button>
             <button
-                class="hover:shadow-md rounded-md p-1"
+                class="rounded-lg p-1 transition-colors hover:bg-surface-200-800"
                 title="Settings"
                 onclick={() => (settingsOpen = true)}
             >

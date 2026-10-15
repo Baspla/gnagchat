@@ -19,7 +19,7 @@
     }
 </script>
 
-<div class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-surface-50-950 text-surface-contrast-50-950">
+<div class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-surface-100-900 text-surface-contrast-100-900">
     {#if manager.state === ConnectionState.Connected}
         <header class="flex shrink-0 items-center justify-between gap-4 px-4 py-3 sm:px-6">
             <div class="min-w-0">

@@ -9,7 +9,7 @@
 </script>
 
 <aside
-    class="shrink-0 flex flex-col items-center p-3 gap-3 overflow-y-auto"
+    class="shrink-0 flex flex-col items-center p-3 gap-3 overflow-y-auto border-r border-surface-100-900"
 >
     <IconSidebarElement href="/"><House class="w-5 h-5" /></IconSidebarElement>
 
