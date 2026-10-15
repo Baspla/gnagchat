@@ -27,4 +27,4 @@ Die Compose Datei für das Deployment ist in docker-compose.yml zu finden.
 Diese Datei sollte up-to-date mit meinem aktuellen Deployment sein, spezifische Anpassungen hinsichtlich Netzwerk, Ports, Volumes und Secrets müssen eventuell noch gemacht werden.
 
 ## LLM-Nutzung
-Beim erstellen des Codes wurde ein LLM (Deepseek V4) genutzt, das mich bei der Eintwicklung unterstützt hat.
+Beim erstellen des Codes wurde ein LLM (Deepseek V4, OpenAI/GPT-5.6-Luna, OpenAI/GPT-6-Luna) genutzt, das mich bei der Eintwicklung unterstützt hat.

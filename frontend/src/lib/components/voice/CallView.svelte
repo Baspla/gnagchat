@@ -31,7 +31,9 @@
         <main class="min-h-0 flex-1 overflow-y-auto px-3 pb-28 sm:px-6">
             <div class="grid h-full auto-rows-fr grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {#each manager.allParticipants as participant (participant.identity)}
-                    <div> TODO </div>
+                    <div>
+                        <span>{participant.name}</span>
+                    </div>
                 {/each}
             </div>
         </main>
